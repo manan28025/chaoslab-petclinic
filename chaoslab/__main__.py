@@ -2,6 +2,7 @@
 
     python3 -m chaoslab map                             # discover the dependency map
     python3 -m chaoslab dashboard                       # build the read-only dashboard
+    python3 -m chaoslab bench                           # live operator console on this machine
     python3 -m chaoslab faults                          # the menu of failure types
     python3 -m chaoslab targets                         # what may be faulted
     python3 -m chaoslab run kill vets-service           # one experiment
@@ -73,11 +74,13 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="chaoslab",
                                      description="Safe, controlled failure injection for the local sandbox.")
     sub = parser.add_subparsers(dest="cmd", required=True,
-                                metavar="{map,dashboard,impact,faults,targets,status,stop,run}")
+                                metavar="{map,dashboard,bench,impact,faults,targets,status,stop,run}")
     sub.add_parser("map", help="discover the dependency map and write it to reports/")
     dashboard_command = sub.add_parser("dashboard", help="build a standalone read-only dashboard")
     dashboard_command.add_argument("--demo", action="store_true",
                                    help="show the committed recorded example even if local runs exist")
+    bench_command = sub.add_parser("bench", help="serve the live Resilience Test Bench on this machine")
+    bench_command.add_argument("--port", type=int, default=8090)
     impact = sub.add_parser("impact", help="predict a failure's blast radius without injecting it")
     impact.add_argument("target")
     impact.add_argument("--failure", choices=sorted(FAULTS), default="kill")
@@ -127,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
                   file=sys.stderr)
             return 2
         print(f"wrote {path.relative_to(dashboard.ROOT)}")
+    elif args.cmd == "bench":
+        from . import bench
+        bench.serve(args.port)
     elif args.cmd == "impact":
         try:
             prediction = blast_radius.analyze(depmap.load(), args.target, args.failure,

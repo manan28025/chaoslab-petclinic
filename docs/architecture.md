@@ -37,6 +37,6 @@ flowchart LR
 
 ## Safety boundary
 
-Only containers carrying `chaoslab.target=true` are eligible. Before injection, the controller checks healthy traffic and a valid owner-details baseline. A single fault runs within parameter limits and a maximum duration. The watchdog samples error rate, p95 latency, throughput, and owner-data correctness, then reverts on sustained breaches. A kill switch can revert active faults; a separate dead-man's switch handles controller failure. The dashboard has no route to these controls.
+Only containers carrying `chaoslab.target=true` are eligible. Before injection, the controller checks healthy traffic and a valid owner-details baseline. A single fault runs within parameter limits and a maximum duration. The watchdog samples error rate, p95 latency, throughput, and owner-data correctness, then reverts on sustained breaches. A kill switch can revert active faults; a separate dead-man's switch handles controller failure. The dashboard has no route to these controls. The live bench (`chaoslab bench`) is an operator console, not a report: like the CLI it can start one guarded `chaoslab run` and press the kill switch, and it accepts those requests only from its own page on this machine.
 
 For setup and commands, see [operations](operations.md). For the recorded evidence, see the [demo guide](demo.md).

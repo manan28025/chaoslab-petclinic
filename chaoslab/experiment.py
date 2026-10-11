@@ -118,6 +118,8 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
                 semantic_thread.start()
             sample.semantic_correctness = latest_correctness
         timeline.append(sample)
+        with (run_dir / "timeline.jsonl").open("a") as f:   # lets the bench draw the run live
+            f.write(json.dumps(asdict(sample)) + "\n")
         return sample
 
     def save(result: dict) -> dict:

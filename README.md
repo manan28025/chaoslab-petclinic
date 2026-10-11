@@ -55,7 +55,7 @@ The operator selects a fault today. The controller uses the saved map to predict
 
 ![ChaosLab experiment detail showing the watchdog abort, traffic and latency timeline, and matched impact predictions](docs/images/dashboard-experiment.png)
 
-The [demo guide](docs/demo.md) includes a speaking script and the commands for generating the dashboard from a new local run. The [architecture guide](docs/architecture.md) explains data flow and component boundaries. [Detailed setup and operations](docs/operations.md) covers prerequisites, monitoring, the CLI, and safety controls.
+The [demo guide](docs/demo.md) includes a speaking script and the commands for generating the dashboard from a new local run. The [architecture guide](docs/architecture.md) explains data flow and component boundaries. [Detailed setup and operations](docs/operations.md) covers prerequisites, monitoring, the CLI, and safety controls. To run and watch experiments live instead of reading saved ones, use the [Resilience Test Bench](docs/operations.md#live-test-bench) (`make bench`).
 
 ## Reproduce locally
 

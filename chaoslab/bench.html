@@ -1,0 +1,1783 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resilience Test Bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a Bosch-style stage. The live test bench fills a wide grey stage and the attack
+   console rests on it as a white card, the way Bosch heroes carry a teaser card; flat,
+   square-edged sections follow, separated by space rather than boxes. */
+:root {
+  --paper: #ffffff;
+  --ground: #eff1f2;
+  --ground-2: #e0e2e5;
+  --ink: #000000;
+  --ink-2: #43464a;
+  --ink-3: #6b7075;
+  --rule: #c1c7cc;
+  --action: #007bc0;
+  --action-hover: #00629a;
+  --action-ink: #ffffff;
+  --alarm: #ed0007;
+  --alarm-ink: #ffffff;
+  --ok: #00884a;
+  --ok-ink: #ffffff;
+  --warn: #ffcf00;
+  --warn-ink: #000000;
+  --warn-text: #8a6100;
+  --stage: #eff1f2;
+  --stage-line: #b4bac0;
+  --stage-node: #ffffff;
+  --a1: #9e2896;   /* list owners */
+  --a2: #007bc0;   /* owner details */
+  --a3: #18837e;   /* list vets */
+  --a4: #00884a;   /* pet types */
+  --a5: #5f9a1c;   /* add visit */
+  --lift: 0 10px 30px rgba(0, 0, 0, .14);
+  --band: linear-gradient(90deg, #8f1a2e 0%, #d42027 9%, #b72b4c 16%, #88357f 24%, #5d3a86 31%, #2a3885 39%,
+          #1d62a1 47%, #3f9ac9 55%, #05b5dc 62%, #069292 70%, #05a14b 79%, #62b16e 89%, #94be55 100%);
+  --display: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --body: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1a1c1d; --ground: #232628; --ground-2: #2e3033; --ink: #ffffff; --ink-2: #c8ced3; --ink-3: #9aa1a8;
+    --rule: #4e5256; --action: #56b0ff; --action-hover: #8ccbff; --action-ink: #00182b; --alarm: #ff5152;
+    --alarm-ink: #000000; --ok: #3cc57f; --ok-ink: #000000; --warn: #ffcf00; --warn-ink: #000000; --warn-text: #ffd84d;
+    --stage: #111314; --stage-line: #4a4f54; --stage-node: #26292b; --a1: #e062d9; --a2: #56b0ff; --a3: #2ec4bb;
+    --a4: #3cc57f; --a5: #a6dd5a; --lift: 0 10px 30px rgba(0, 0, 0, .55); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1a1c1d; --ground: #232628; --ground-2: #2e3033; --ink: #ffffff; --ink-2: #c8ced3; --ink-3: #9aa1a8;
+  --rule: #4e5256; --action: #56b0ff; --action-hover: #8ccbff; --action-ink: #00182b; --alarm: #ff5152;
+  --alarm-ink: #000000; --ok: #3cc57f; --ok-ink: #000000; --warn: #ffcf00; --warn-ink: #000000; --warn-text: #ffd84d;
+  --stage: #111314; --stage-line: #4a4f54; --stage-node: #26292b; --a1: #e062d9; --a2: #56b0ff; --a3: #2ec4bb;
+  --a4: #3cc57f; --a5: #a6dd5a; --lift: 0 10px 30px rgba(0, 0, 0, .55); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--action); outline-offset: 2px; }
+.wrap { max-width: 1360px; margin: 0 auto; padding-inline: 32px; }
+.mono { font-family: var(--mono); font-size: .86em; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h2 { font-size: clamp(24px, 2.4vw, 32px); font-weight: 750; font-stretch: 108%; letter-spacing: -.01em; line-height: 1.15; }
+h3 { font-size: 17px; font-weight: 700; }
+p { margin: 0; }
+.eyebrow { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); }
+.lede { color: var(--ink-2); max-width: 68ch; margin-top: 8px; }
+.link { background: none; border: 0; padding: 0; color: var(--action); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+.link:hover { color: var(--action-hover); text-decoration: underline; }
+.link::after { content: "›"; font-size: 1.25em; line-height: 1; }
+
+/* top band and header */
+.band { height: 6px; background: var(--band); }
+.band.attack { background: repeating-linear-gradient(-45deg, var(--alarm) 0 12px, var(--ink) 12px 24px); background-size: 34px 34px; animation: hazard .9s linear infinite; }
+.band.replay { background: repeating-linear-gradient(90deg, var(--action) 0 18px, transparent 18px 26px), var(--ground-2); animation: hazard 1.6s linear infinite; background-size: 52px 100%; }
+@keyframes hazard { to { background-position: 34px 0; } }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--paper); border-bottom: 1px solid var(--ground-2); }
+.top-row { display: flex; align-items: center; gap: 24px; min-height: 64px; }
+.brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); min-width: 0; }
+.brand svg { flex: none; }
+.brand b { font: 800 19px/1 var(--display); font-stretch: 112%; letter-spacing: -.01em; }
+.brand span { font-size: 14px; color: var(--ink-2); white-space: nowrap; }
+nav.sections { display: flex; gap: 22px; margin-left: auto; }
+nav.sections a { color: var(--ink); text-decoration: none; font-size: 14.5px; padding: 6px 0; border-bottom: 2px solid transparent; }
+nav.sections a:hover { border-bottom-color: var(--action); }
+.top-tools { display: flex; align-items: center; gap: 14px; }
+.sys { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 6px 10px; background: var(--ground); white-space: nowrap; }
+.sys i { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+.sys.attack i { background: var(--alarm); box-shadow: 0 0 0 3px color-mix(in srgb, var(--alarm) 25%, transparent); animation: blink 1s steps(2) infinite; }
+.sys.offline i { background: var(--ink-3); box-shadow: none; }
+@keyframes blink { 50% { opacity: .25; } }
+.icon-btn { width: 38px; height: 38px; display: grid; place-items: center; background: transparent; border: 1px solid var(--rule); }
+.icon-btn:hover { border-color: var(--ink); }
+.estop-wrap { display: flex; align-items: center; gap: 10px; }
+.estop-wrap small { font-size: 11px; line-height: 1.15; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; text-align: right; color: var(--ink-2); }
+.estop { width: 50px; height: 50px; border-radius: 50%; border: 0; padding: 0; background: var(--warn); display: grid; place-items: center; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .25); }
+.estop span { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 38% 32%, #ff6b6b 0, #e2000f 45%, #a5000b 100%); color: #fff; font: 800 9.5px/1 var(--display); letter-spacing: .06em; box-shadow: 0 3px 0 #6d0007, 0 4px 8px rgba(0, 0, 0, .35); transition: transform .08s, box-shadow .08s; }
+.estop:active span, .estop.pressed span { transform: translateY(3px) scale(.96); box-shadow: 0 0 0 #6d0007, 0 1px 3px rgba(0, 0, 0, .35); }
+
+/* live readouts */
+.readouts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); padding-block: 22px 18px; }
+.readout { padding: 0 18px; border-left: 1px solid var(--ground-2); min-width: 0; }
+.readout:first-child { padding-left: 0; border-left: 0; }
+.readout .lbl { font-size: 12.5px; color: var(--ink-3); display: block; }
+.readout .val { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin-top: 2px; }
+.readout b { white-space: nowrap; }
+.readout b { font: 750 28px/1.1 var(--display); font-stretch: 105%; font-variant-numeric: tabular-nums; }
+.readout small { color: var(--ink-3); font-size: 13px; }
+.readout.bad b { color: var(--alarm); }
+.readout svg { display: block; width: 100%; height: 26px; margin-top: 6px; overflow: visible; }
+.spark-line { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.spark-area { opacity: .14; }
+.c-rps { stroke: var(--action); fill: var(--action); }
+.c-err { stroke: var(--alarm); fill: var(--alarm); }
+.c-p95 { stroke: var(--warn-text); fill: var(--warn-text); }
+
+/* stage */
+.stage-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 388px; }
+.stage { grid-column: 1 / -1; grid-row: 1; background: var(--stage); padding: 30px 440px 22px 32px; position: relative; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.stage h1 { font-size: clamp(24px, 2.7vw, 38px); font-weight: 800; font-stretch: 110%; line-height: 1.08; letter-spacing: -.015em; max-width: 24ch; }
+.stage h1 em { font-style: normal; color: var(--alarm); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; }
+.legend .fail { color: var(--alarm); font-weight: 600; }
+.bench-scroll { overflow-x: auto; overflow-y: hidden; margin-inline: -8px; padding-inline: 8px; }
+.bench { position: relative; height: 430px; min-width: 620px; }
+.bench canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.symbols { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12.5px; color: var(--ink-3); }
+.symbols span { display: inline-flex; align-items: center; gap: 6px; }
+
+.node { position: absolute; transform: translate(-50%, -50%); background: var(--stage-node); border: 1px solid var(--stage-line); padding: 7px 22px 7px 12px; text-align: left; display: flex; flex-direction: column; justify-content: center; gap: 1px; color: var(--ink); transition: box-shadow .2s, border-color .2s, opacity .2s; }
+.node .nm { font-weight: 700; font-size: 13.5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .mt { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node .dot { position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.node .dot.up { background: var(--ok); }
+.node .dot.warn { background: var(--warn); }
+.node .dot.down { background: var(--alarm); }
+.node .badge { position: absolute; left: -1px; bottom: calc(100% + 1px); font: 700 10.5px/1 var(--display); letter-spacing: .05em; text-transform: uppercase; padding: 4px 6px; background: var(--alarm); color: var(--alarm-ink); white-space: nowrap; }
+.node .badge.info { background: var(--ink); color: var(--paper); }
+button.node:hover { border-color: var(--ink); }
+.node.db { border-style: solid; border-radius: 0 0 14px 14px / 0 0 8px 8px; box-shadow: inset 0 3px 0 var(--ground-2); }
+.node.platform { opacity: .9; }
+.node.users { border-radius: 28px; text-align: center; align-items: center; padding-inline: 10px; }
+.node.inactive { opacity: .45; border-style: dashed; }
+.node.target { border: 2px solid var(--alarm); box-shadow: 0 0 0 4px color-mix(in srgb, var(--alarm) 18%, transparent); }
+.node.dim { opacity: .35; }
+.node.o-unavailable:not(.target) { border-color: var(--alarm); }
+.node.o-degraded:not(.target) { border-color: var(--warn-text); }
+.node.is-down { background: repeating-linear-gradient(-45deg, var(--stage-node) 0 6px, var(--ground-2) 6px 12px); border-style: dashed; }
+.node.is-frozen { background: color-mix(in srgb, var(--action) 14%, var(--stage-node)); }
+.node.is-hot { animation: heat 1.1s ease-in-out infinite; }
+@keyframes heat { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 45%, transparent); } }
+.node.drop { outline: 2px dashed var(--action); outline-offset: 4px; }
+.bench .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-2); text-align: center; padding: 24px; }
+
+.replay-bar { display: flex; align-items: center; gap: 14px; background: var(--paper); padding: 10px 14px; border-left: 4px solid var(--action); flex-wrap: wrap; }
+.replay-bar .what { font-weight: 700; }
+.replay-bar .when { color: var(--ink-2); font-size: 13.5px; }
+.replay-bar progress { flex: 1 1 160px; height: 6px; accent-color: var(--action); }
+
+/* console card */
+.console { grid-column: 2; grid-row: 1; align-self: start; margin: 26px 26px 26px 0; background: var(--paper); box-shadow: var(--lift); position: relative; z-index: 2; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.console h2 { font-size: 21px; font-stretch: 106%; }
+.arm-grid { display: grid; gap: 16px; }
+#liveView { display: grid; gap: 14px; }
+.arm-col { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.console .step { display: flex; align-items: baseline; gap: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin-bottom: 8px; }
+.attacks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.attack { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 10px 9px; background: var(--ground); border: 2px solid transparent; text-align: left; font-size: 13px; font-weight: 600; line-height: 1.2; min-height: 66px; }
+.attack:hover { border-color: var(--ink-3); }
+.attack[aria-pressed="true"] { background: var(--paper); border-color: var(--action); color: var(--action); }
+.attack kbd { font: 600 10px var(--mono); color: var(--ink-3); margin-left: auto; }
+.attack .row { display: flex; width: 100%; align-items: center; }
+.about { font-size: 13.5px; color: var(--ink-2); }
+.about dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0 0; font-size: 12.5px; }
+.about dt { color: var(--ink-3); }
+.about dd { margin: 0; }
+.target-line { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--ground); font-size: 14px; }
+.target-line b { font-weight: 700; }
+.target-line .hint { color: var(--ink-3); }
+.field { display: grid; gap: 4px; }
+.field label { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--ink-2); }
+.field output { font: 600 13px var(--mono); color: var(--ink); }
+.field input[type=range] { width: 100%; accent-color: var(--action); }
+.forecast { border-top: 1px solid var(--ground-2); padding-top: 12px; display: grid; gap: 8px; }
+.forecast .bars { display: flex; height: 8px; gap: 2px; }
+.forecast .bars i { display: block; }
+.forecast .counts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+.hold { position: relative; overflow: hidden; height: 50px; border: 0; background: var(--action); color: var(--action-ink); font: 700 15.5px/1 var(--body); letter-spacing: .01em; user-select: none; -webkit-user-select: none; touch-action: none; }
+.hold:hover { background: var(--action-hover); }
+.hold .fill { position: absolute; inset: 0; width: 0; background: var(--alarm); }
+.hold .txt { position: relative; }
+.hold:disabled { background: var(--ground-2); color: var(--ink-3); cursor: not-allowed; }
+.fine { font-size: 12.5px; color: var(--ink-3); }
+.err-box { background: color-mix(in srgb, var(--alarm) 9%, var(--paper)); border-left: 4px solid var(--alarm); padding: 10px 12px; font-size: 13px; }
+.err-box pre { margin: 6px 0 0; white-space: pre-wrap; font: 12px/1.45 var(--mono); color: var(--ink-2); }
+
+.live-head { display: flex; align-items: center; gap: 10px; }
+.tag { display: inline-flex; align-items: center; gap: 6px; font: 700 11px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; background: var(--alarm); color: var(--alarm-ink); }
+.tag.blue { background: var(--action); color: var(--action-ink); }
+.tag i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: blink 1s steps(2) infinite; }
+.stepper { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.stepper li { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 7px 0; color: var(--ink-3); position: relative; font-size: 14px; }
+.stepper li::before { content: ""; width: 12px; height: 12px; border: 2px solid var(--rule); background: var(--paper); justify-self: center; z-index: 1; }
+.stepper li:not(:last-child)::after { content: ""; position: absolute; left: 10px; top: 24px; bottom: -8px; width: 2px; background: var(--ground-2); }
+.stepper li.done { color: var(--ink-2); }
+.stepper li.done::before { background: var(--ok); border-color: var(--ok); }
+.stepper li.now { color: var(--ink); font-weight: 700; }
+.stepper li.now::before { background: var(--alarm); border-color: var(--alarm); animation: blink 1s steps(2) infinite; }
+.stepper li .t { font: 600 12.5px var(--mono); }
+.mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--ground-2); }
+.mini div { background: var(--paper); padding: 8px 10px; }
+.mini span { display: block; font-size: 11.5px; color: var(--ink-3); }
+.mini b { font: 700 18px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+
+/* sections */
+.section { padding-block: 64px 8px; }
+.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 26px; }
+.section-head > div { min-width: 0; max-width: 760px; }
+
+/* blast radius */
+.features { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.feature { background: var(--ground); padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.feature .hue { height: 5px; margin: 0 -16px 8px; }
+.feature h3 { font-size: 15.5px; }
+.feature .why { font-size: 13.5px; color: var(--ink-2); }
+.feature .how { font-size: 12px; color: var(--ink-3); font-family: var(--mono); }
+.chip { display: inline-block; align-self: flex-start; font: 700 11px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 5px 7px; white-space: nowrap; }
+.chip.unavailable, .chip.lost, .chip.stuck, .chip.fail { background: var(--alarm); color: var(--alarm-ink); }
+.chip.degraded, .chip.tripped { background: var(--warn); color: var(--warn-ink); }
+.chip.preserved, .chip.held, .chip.pass { background: var(--ok); color: var(--ok-ink); }
+.chip.uncertain, .chip.none, .chip.refused, .chip.stopped, .chip.unobserved { background: var(--ground-2); color: var(--ink); }
+.chip.pending { background: var(--action); color: var(--action-ink); }
+.sub-row { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.sub-row h3 { grid-column: 1 / -1; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); }
+.line-card { border-left: 3px solid var(--rule); padding: 2px 0 2px 14px; display: grid; gap: 6px; font-size: 13.5px; min-width: 0; }
+.line-card.unavailable { border-color: var(--alarm); }
+.line-card.degraded { border-color: var(--warn); }
+.line-card b { font-weight: 700; }
+.line-card p { color: var(--ink-2); }
+
+/* matrix */
+.figures { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 28px; }
+.figures div { padding: 0 18px; border-left: 1px solid var(--ground-2); min-width: 0; }
+.figures div:first-child { padding-left: 0; border-left: 0; }
+.figures b { display: block; font: 750 34px/1.1 var(--display); font-stretch: 106%; font-variant-numeric: tabular-nums; }
+.figures span { font-size: 13px; color: var(--ink-2); }
+.matrix-scroll { overflow-x: auto; }
+table.matrix { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 760px; margin: -4px; }
+.matrix th { font-size: 13px; font-weight: 600; text-align: left; color: var(--ink-2); padding: 4px 6px; white-space: nowrap; }
+.matrix thead th { vertical-align: bottom; }
+.matrix thead th span { display: inline-flex; align-items: center; gap: 6px; }
+.matrix td { padding: 0; height: 62px; }
+.cell { width: 100%; height: 100%; border: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; padding: 8px 10px; text-align: left; font-size: 12px; background: var(--ground); color: var(--ink-2); }
+.cell b { font: 700 13px/1.1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.cell.held { background: var(--ok); color: var(--ok-ink); }
+.cell.tripped { background: var(--warn); color: var(--warn-ink); }
+.cell.lost, .cell.stuck { background: var(--alarm); color: var(--alarm-ink); }
+.cell.refused, .cell.stopped { background: var(--ground-2); color: var(--ink); }
+.cell.pending { background: var(--paper); box-shadow: inset 0 0 0 2px var(--action); color: var(--action); }
+.cell.open { background: transparent; box-shadow: inset 0 0 0 1px var(--rule); color: var(--action); font-weight: 600; font-size: 13px; }
+.cell.open:hover { box-shadow: inset 0 0 0 2px var(--action); }
+.cell.na { background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--ground) 6px 8px); cursor: default; color: var(--ink-3); }
+.cell:not(.na):not(.open):hover { filter: brightness(1.06); outline: 2px solid var(--ink); outline-offset: -2px; }
+.key { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 18px; font-size: 13px; color: var(--ink-2); }
+.key span { display: inline-flex; align-items: center; gap: 8px; }
+
+/* recorder */
+.recorder { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 32px; align-items: start; }
+.runlist { display: grid; gap: 2px; max-height: 760px; overflow-y: auto; padding-right: 4px; }
+.run { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px; background: transparent; border: 0; border-left: 3px solid transparent; text-align: left; }
+.run:hover { background: var(--ground); }
+.run[aria-current="true"] { background: var(--ground); border-left-color: var(--action); }
+.run .t1 { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.run .t2 { font-size: 12px; color: var(--ink-3); }
+.glyph { width: 28px; height: 28px; display: grid; place-items: center; background: var(--ink); color: var(--paper); }
+.glyph.big { width: 44px; height: 44px; }
+.detail { min-width: 0; display: grid; gap: 20px; }
+.detail-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.detail-head .ttl { min-width: 0; flex: 1 1 260px; }
+.detail-head h3 { font-size: 22px; font-stretch: 106%; }
+.detail-head .why { font-size: 13.5px; color: var(--ink-2); }
+.btn { height: 40px; padding: 0 16px; border: 1px solid var(--ink); background: transparent; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { background: var(--ink); color: var(--paper); }
+.btn.primary { background: var(--action); border-color: var(--action); color: var(--action-ink); }
+.btn.primary:hover { background: var(--action-hover); border-color: var(--action-hover); }
+.stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; background: var(--ground-2); }
+.stats div { background: var(--paper); padding: 10px 12px; min-width: 0; }
+.stats span { display: block; font-size: 12px; color: var(--ink-3); }
+.stats b { font: 700 18px/1.25 var(--display); font-variant-numeric: tabular-nums; }
+.chart { position: relative; background: var(--ground); padding: 8px 8px 4px; }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart text { font: 11px var(--mono); fill: var(--ink-3); }
+.sg-axis { stroke: var(--rule); }
+.sg-band-baseline { fill: transparent; }
+.sg-band-fault { fill: color-mix(in srgb, var(--alarm) 11%, transparent); }
+.sg-band-recovery { fill: color-mix(in srgb, var(--ok) 10%, transparent); }
+.chart text.ph-fault { fill: var(--alarm); font-weight: 600; }
+.chart text.ph-recovery { fill: var(--ok); font-weight: 600; }
+.sg-limit { stroke: var(--alarm); stroke-dasharray: 4 5; opacity: .6; }
+.chart text { paint-order: stroke; stroke: var(--ground); stroke-width: 4px; stroke-linejoin: round; }
+.chart text.lim { fill: var(--alarm); }
+.sg-rps { stroke: var(--action); fill: none; stroke-width: 2; }
+.sg-rps-area { fill: var(--action); opacity: .14; }
+.sg-err { stroke: var(--alarm); fill: none; stroke-width: 2; }
+.sg-err-area { fill: var(--alarm); opacity: .14; }
+.sg-p95 { stroke: var(--warn-text); fill: none; stroke-width: 2; }
+.sg-mark { stroke-width: 1.4; }
+.sg-mark.inject, .sg-mark.abort { stroke: var(--alarm); }
+.sg-mark.undo, .sg-mark.recovered { stroke: var(--ok); }
+.sg-mark.loss { stroke: var(--warn-text); }
+.chart text.mk-inject, .chart text.mk-abort { fill: var(--alarm); font-weight: 600; }
+.chart text.mk-undo, .chart text.mk-recovered { fill: var(--ok); font-weight: 600; }
+.chart text.mk-loss { fill: var(--warn-text); font-weight: 600; }
+.sg-cursor { stroke: var(--ink); stroke-width: 1; }
+.readbox { position: absolute; top: 46px; pointer-events: none; background: var(--paper); box-shadow: var(--lift); padding: 8px 10px; font: 12px/1.55 var(--mono); white-space: pre; display: none; }
+.scrub { display: flex; align-items: center; gap: 12px; padding: 4px 4px 0; }
+.scrub input { flex: 1; accent-color: var(--action); }
+.scrub output { font: 600 12.5px var(--mono); min-width: 9ch; text-align: right; }
+.callout { border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--paper)); padding: 12px 14px; font-size: 14px; }
+.two { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 28px; }
+.protocol { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.protocol caption { text-align: left; font-weight: 700; padding-bottom: 8px; }
+.protocol th { text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-3); padding: 6px 8px 6px 0; border-bottom: 2px solid var(--ink); }
+.protocol td { padding: 8px 8px 8px 0; border-bottom: 1px solid var(--ground-2); vertical-align: middle; }
+.protocol td.n { font-family: var(--mono); font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.actionbars { display: grid; gap: 10px; }
+.actionbars .t { display: flex; justify-content: space-between; font-size: 13.5px; }
+.actionbars .t span:first-child { display: inline-flex; align-items: center; gap: 7px; }
+.actionbars .t i { width: 9px; height: 9px; border-radius: 50%; }
+.actionbars .track { height: 8px; background: var(--ground-2); }
+.actionbars .track span { display: block; height: 100%; background: var(--alarm); }
+details.log summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+details.log ol { list-style: none; margin: 10px 0 0; padding: 12px 14px; background: var(--ground); font: 12px/1.7 var(--mono); max-height: 280px; overflow: auto; }
+details.log li { display: grid; grid-template-columns: 7ch 9ch minmax(0, 1fr); gap: 10px; }
+details.log li span:nth-child(2) { font-weight: 600; text-transform: uppercase; }
+.empty-note { color: var(--ink-3); font-size: 14px; padding: 24px; background: var(--ground); }
+
+/* interlocks */
+.interlocks { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; position: relative; counter-reset: lock; }
+.lock { padding: 0 18px 0 0; position: relative; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.lock .pin { display: flex; align-items: center; gap: 0; }
+.lock .pin i { width: 30px; height: 30px; display: grid; place-items: center; background: var(--ok); color: var(--ok-ink); flex: none; }
+.lock .pin::after { content: ""; flex: 1; height: 2px; background: var(--ok); }
+.lock:last-child .pin::after { background: transparent; }
+.lock.active .pin i { background: var(--alarm); color: var(--alarm-ink); }
+.lock h3 { font-size: 15.5px; }
+.lock p { font-size: 13px; color: var(--ink-2); }
+.lock .state { font: 600 12px var(--mono); color: var(--ok); }
+.lock.active .state { color: var(--alarm); }
+
+footer { margin-top: 72px; border-top: 1px solid var(--ground-2); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22px 30px; font-size: 13px; color: var(--ink-3); }
+
+#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 140%); background: var(--ink); color: var(--paper); padding: 12px 16px; font-size: 14px; max-width: min(560px, calc(100vw - 32px)); z-index: 40; transition: transform .25s, visibility .25s; display: flex; gap: 14px; align-items: center; visibility: hidden; }
+#toast.on { transform: translate(-50%, 0); visibility: visible; }
+#toast button { background: none; border: 0; color: inherit; text-decoration: underline; font-weight: 600; padding: 0; }
+
+@media (max-width: 1180px) {
+  nav.sections { display: none; }
+  .top-tools { margin-left: auto; }
+  .features { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .feature { grid-column: span 2; }
+  .feature:nth-child(n+4) { grid-column: span 3; }
+  .interlocks { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 0; }
+  .figures, .readouts { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 18px; }
+  .figures div:nth-child(4), .readouts .readout:nth-child(4) { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 1240px) {
+  .stage-wrap { grid-template-columns: minmax(0, 1fr); }
+  .stage { padding: 26px 24px 20px; }
+  .console { grid-column: 1; grid-row: 2; margin: -12px 18px 0; }
+  .arm-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; }
+}
+@media (max-width: 980px) {
+  .recorder { grid-template-columns: minmax(0, 1fr); }
+  .runlist { max-height: 300px; }
+  .two { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+  .wrap { padding-inline: 16px; }
+  .stage-wrap.wrap { padding-inline: 0; }
+  .stage { padding-inline: 16px; }
+  .console { margin-inline: 8px; padding: 18px 16px; }
+  .arm-grid { grid-template-columns: minmax(0, 1fr); }
+  .features { grid-template-columns: minmax(0, 1fr); }
+  .feature, .feature:nth-child(n+4) { grid-column: auto; }
+  .brand span, .estop-wrap small { display: none; }
+  .top-row { gap: 12px; }
+  .figures, .readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures div, .readouts .readout { padding-left: 0 !important; border-left: 0 !important; }
+  .interlocks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section { padding-top: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+<div class="band" id="band" aria-hidden="true"></div>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="#bench" aria-label="Resilience Test Bench, back to the bench">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="1.5" y="1.5" width="27" height="27" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M1.5 17.5l7-5 4 5 5-9 4 5 7-3" fill="none" stroke="var(--alarm)" stroke-width="2.4" stroke-linejoin="bevel"/></svg>
+      <b>chaoslab</b><span>Resilience Test Bench</span>
+    </a>
+    <nav class="sections" aria-label="Sections">
+      <a href="#bench">Bench</a><a href="#blast">Blast radius</a><a href="#matrix">Test matrix</a><a href="#recorder">Recorder</a><a href="#safety">Safety</a>
+    </nav>
+    <div class="top-tools">
+      <span class="sys" id="sys" role="status"><i></i><span id="sysText">Connecting</span></span>
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch between light and dark"></button>
+      <div class="estop-wrap"><small>Emergency<br>stop</small><button class="estop" id="estop" type="button" aria-label="Emergency stop: undo every active fault and restore the sandbox"><span>STOP</span></button></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="wrap readouts" id="readouts" aria-label="Live signals from the load generator"></section>
+
+  <section class="wrap stage-wrap" id="bench" aria-label="Live test bench">
+    <div class="stage">
+      <div>
+        <div class="eyebrow">Live test bench · Spring PetClinic microservices</div>
+        <h1 id="headline">Connecting to the sandbox</h1>
+      </div>
+      <div class="legend" id="legend" aria-label="User actions and their live request rate"></div>
+      <div class="bench-scroll"><div class="bench" id="benchArea"><canvas id="flow" aria-hidden="true"></canvas><div id="nodes"></div></div></div>
+      <div class="replay-bar" id="replayBar" hidden></div>
+      <div class="symbols" aria-hidden="true">
+        <span><svg width="14" height="10"><circle cx="5" cy="5" r="3.5" fill="var(--ink-3)"/></svg>one dot ≈ one request, coloured by user action</span>
+        <span><svg width="14" height="10"><circle cx="5" cy="5" r="3.5" fill="var(--alarm)"/></svg>red dot heading back: the user got an error</span>
+        <span><svg width="14" height="10"><path d="M1 5h3M9 5h3M6.5 1v3M6.5 6v3" stroke="var(--ink-3)" stroke-width="1.6"/></svg>burst: an internal call failed</span>
+      </div>
+    </div>
+
+    <aside class="console" id="console" aria-label="Attack console">
+      <div id="armView" class="arm-grid">
+        <div class="arm-col">
+          <div>
+            <div class="step"><span>1</span><span>Choose an attack</span></div>
+            <div class="attacks" id="attackGrid" role="group" aria-label="Attack type"></div>
+          </div>
+          <div class="about" id="about"></div>
+        </div>
+        <div class="arm-col">
+          <div>
+            <div class="step"><span>2</span><span>Choose a target on the bench</span></div>
+            <div class="target-line" id="targetLine"></div>
+          </div>
+          <div id="params" style="display:grid;gap:12px"></div>
+          <div class="forecast" id="forecast"></div>
+          <div id="launchError" hidden></div>
+          <button class="hold" id="launch" type="button"><span class="fill"></span><span class="txt">Hold to launch</span></button>
+          <p class="fine" id="launchNote">Hold for one second. Every run starts with 20 s of steady-state measurement. The watchdog, timer, kill switch and dead-man's switch all apply.</p>
+        </div>
+      </div>
+      <div id="liveView" hidden></div>
+    </aside>
+  </section>
+
+  <section class="wrap section" id="blast" aria-labelledby="blastTitle">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Prediction before injection</div>
+        <h2 id="blastTitle">What users would feel</h2>
+        <p class="lede" id="blastLede">Pick an attack and a service on the bench.</p>
+      </div>
+    </div>
+    <div class="features" id="features"></div>
+    <div class="sub-row" id="restart"></div>
+  </section>
+
+  <section class="wrap section" id="matrix" aria-labelledby="matrixTitle">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Findings</div>
+        <h2 id="matrixTitle">Test matrix</h2>
+        <p class="lede">Every service against every attack. Each square shows the latest run; open squares have not been tested yet and arm the bench when you click them.</p>
+      </div>
+    </div>
+    <div class="figures" id="figures"></div>
+    <div class="matrix-scroll"><table class="matrix" id="matrixTable"></table></div>
+    <div class="key">
+      <span><span class="chip held">held</span> users stayed inside the limits for the whole fault</span>
+      <span><span class="chip tripped">tripped</span> the watchdog stopped it because users were hurt</span>
+      <span><span class="chip lost">data lost</span> data written before the fault was gone after it</span>
+      <span><span class="chip stuck">no recovery</span> users never got normal service back</span>
+      <span><span class="chip refused">refused</span> not started: the system was not steady</span>
+    </div>
+  </section>
+
+  <section class="wrap section" id="recorder" aria-labelledby="recTitle">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Experiment recorder</div>
+        <h2 id="recTitle">Every second, recorded</h2>
+        <p class="lede">Throughput, errors and the slowest 5% of pages for each second of a run, with the watchdog's limits and what was predicted against what happened.</p>
+      </div>
+    </div>
+    <div class="recorder">
+      <div class="runlist" id="runlist" aria-label="Experiments, newest first"></div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </section>
+
+  <section class="wrap section" id="safety" aria-labelledby="safetyTitle">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">Safety</div>
+        <h2 id="safetyTitle">Six interlocks, any one stops an attack</h2>
+        <p class="lede">They act in this order. Each has been tested on this sandbox.</p>
+      </div>
+    </div>
+    <div class="interlocks" id="interlocks"></div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>chaoslab · AI-driven chaos engineering for cloud-native resilience · Bosch hackathon prototype</span>
+    <span>Runs on this machine only (127.0.0.1)</span>
+    <span>Command line: <span class="mono">python3 -m chaoslab stop</span> undoes everything</span>
+  </div>
+</footer>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const SVGNS = "http://www.w3.org/2000/svg";
+const NAMES = {kill: "Crash", pause: "Freeze", delay: "Slow network", loss: "Lossy network", cpu: "CPU starvation", spike: "Traffic spike"};
+const SIMULATES = {
+  kill: "A process dies, like an out-of-memory kill or a lost machine.",
+  pause: "A process hangs: connections stay open but nothing answers.",
+  delay: "Everything the service sends arrives late.",
+  loss: "Packets the service sends go missing; 100% cuts it off.",
+  cpu: "The service gets a sliver of CPU, like a noisy neighbour.",
+  spike: "A sudden surge of users at the front door.",
+};
+const ACTIONS = ["list owners", "owner details", "list vets", "pet types", "add visit"];
+const HUE = {"list owners": "--a1", "owner details": "--a2", "list vets": "--a3", "pet types": "--a4", "add visit": "--a5"};
+const UI_PARAM = {
+  delay: {name: "delay_ms", label: "Added latency", min: 50, max: 5000, step: 50, value: 1000, fmt: v => `${v} ms`},
+  loss: {name: "loss_pct", label: "Packets dropped", min: 5, max: 100, step: 5, value: 30, fmt: v => `${v}%`},
+  cpu: {name: "cpus", label: "CPU allowed", min: 0.05, max: 1, step: 0.05, value: 0.1, fmt: v => `${(+v).toFixed(2)} core`},
+  spike: {name: "multiplier", label: "Users multiplied by", min: 1.5, max: 10, step: 0.5, value: 5, fmt: v => `×${v}`},
+};
+const OUTCOME = {unavailable: "unavailable", degraded: "degraded", preserved: "preserved", uncertain: "uncertain"};
+const S = {
+  map: null, attacks: [], status: null, runs: [], totals: null, live: {run: null, launch: null},
+  selected: null, detail: null, mode: "kill", target: "visits-service", impact: null,
+  params: {}, duration: 30, replay: null, history: {rps: [], err: [], p95: []}, colors: {}, lastLiveId: null,
+  launching: false,
+};
+
+/* ---------- helpers ---------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+function el(tag, props = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (value == null || value === false) continue;
+    if (key === "class") node.className = value;
+    else if (key === "text") node.textContent = value;
+    else if (key === "style" && typeof value === "object") Object.assign(node.style, value);
+    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value === true ? "" : value);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    node.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return node;
+}
+function sv(tag, attrs = {}, ...kids) {
+  const node = document.createElementNS(SVGNS, tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value == null) continue;
+    if (key === "text") node.textContent = value;
+    else node.setAttribute(key, value);
+  }
+  for (const kid of kids.flat()) if (kid) node.append(kid);
+  return node;
+}
+const pct = v => v == null ? "–" : (v * 100 >= 10 || v === 0 ? Math.round(v * 100) : (v * 100).toFixed(1)) + "%";
+const ms = v => v == null ? "–" : v >= 1000 ? (v / 1000).toFixed(v >= 10000 ? 0 : 1) + " s" : Math.round(v) + " ms";
+const secs = v => v == null ? "–" : Number(v).toFixed(1) + " s";
+const clock = id => `${id.slice(9, 11)}:${id.slice(11, 13)}:${id.slice(13, 15)}`;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const goTo = sel => $(sel).scrollIntoView({behavior: reduced() ? "auto" : "smooth", block: "start"});
+async function getJSON(url) {
+  const response = await fetch(url, {cache: "no-store"});
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || response.statusText);
+  return body;
+}
+async function post(url, body) {
+  const response = await fetch(url, {method: "POST", body: body ? JSON.stringify(body) : "",
+    headers: {"X-Chaoslab-Kill-Switch": "1", "Content-Type": "application/json"}});
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || response.statusText);
+  return data;
+}
+function toast(message, action) {
+  const box = $("#toast");
+  box.replaceChildren(el("span", {text: message}), action ? el("button", {type: "button", text: action.label, onclick: () => { box.classList.remove("on"); action.run(); }}) : null);
+  box.classList.add("on");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => box.classList.remove("on"), 7000);
+}
+function glyph(kind, size = 18) {
+  const g = sv("svg", {width: size, height: size, viewBox: "0 0 20 20", "aria-hidden": "true"});
+  const line = (d, extra = {}) => g.append(sv("path", {d, fill: "none", stroke: "currentColor", "stroke-width": 1.9, "stroke-linecap": "square", "stroke-linejoin": "miter", ...extra}));
+  if (kind === "kill") line("M2 10h4l2-6 4 12 2-6h4");
+  else if (kind === "pause") line("M7 4v12M13 4v12", {"stroke-width": 2.6});
+  else if (kind === "delay") { g.append(sv("circle", {cx: 10, cy: 10, r: 7, fill: "none", stroke: "currentColor", "stroke-width": 1.9})); line("M10 6v4l3 2"); }
+  else if (kind === "loss") line("M2 10h3M8 10h2M13 10h1.5M17.5 10h.5", {"stroke-width": 2.6});
+  else if (kind === "cpu") { g.append(sv("rect", {x: 5, y: 5, width: 10, height: 10, fill: "none", stroke: "currentColor", "stroke-width": 1.9})); line("M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3"); }
+  else { line("M3 16l4-5 3 3 6-8"); line("M12 6h4v4"); }
+  return g;
+}
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = name => cs.getPropertyValue(name).trim();
+  S.colors = {ink: v("--ink"), ink3: v("--ink-3"), line: v("--stage-line"), alarm: v("--alarm"), ok: v("--ok"),
+              warn: v("--warn-text"), action: v("--action"), stage: v("--stage"), font: `11px ${getComputedStyle(document.body).fontFamily}`,
+              hue: Object.fromEntries(ACTIONS.map(a => [a, v(HUE[a])]))};
+}
+
+/* ---------- theme ---------- */
+function storedTheme() { try { return localStorage.getItem("chaoslab-theme"); } catch (err) { return null; } }
+function applyTheme(theme) {
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+  else document.documentElement.removeAttribute("data-theme");
+  const dark = theme ? theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const btn = $("#theme");
+  btn.replaceChildren(sv("svg", {width: 18, height: 18, viewBox: "0 0 20 20", "aria-hidden": "true"},
+    dark ? sv("path", {d: "M10 3a7 7 0 1 0 7 7 5.5 5.5 0 0 1-7-7z", fill: "currentColor"})
+         : sv("g", {stroke: "currentColor", "stroke-width": 1.8, fill: "none"}, sv("circle", {cx: 10, cy: 10, r: 3.6}),
+             sv("path", {d: "M10 1.5v2.5M10 16v2.5M1.5 10H4M16 10h2.5M4 4l1.8 1.8M14.2 14.2L16 16M4 16l1.8-1.8M14.2 5.8L16 4"}))));
+  btn.setAttribute("aria-label", dark ? "Switch to light" : "Switch to dark");
+  readColors();
+  if (S.detail) renderDetail();
+}
+$("#theme").addEventListener("click", () => {
+  const dark = document.documentElement.getAttribute("data-theme") ? document.documentElement.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const next = dark ? "light" : "dark";
+  try { localStorage.setItem("chaoslab-theme", next); } catch (err) { /* private window */ }
+  applyTheme(next);
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => applyTheme(storedTheme()));
+
+/* ---------- live readouts ---------- */
+function sparkSVG(values, cls, max) {
+  const svg = sv("svg", {viewBox: "0 0 120 26", preserveAspectRatio: "none", "aria-hidden": "true"});
+  const pts = values.map((v, i) => v == null ? null : [i * 120 / Math.max(values.length - 1, 1), 24 - Math.min(v / (max || 1), 1) * 21]);
+  let d = "";
+  pts.forEach((p, i) => { if (p) d += (d && pts[i - 1] ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); });
+  if (!d) return svg;
+  const first = pts.find(Boolean), last = [...pts].reverse().find(Boolean);
+  svg.append(sv("path", {class: `spark-area ${cls}`, d: `${d}L${last[0]} 26L${first[0]} 26Z`, stroke: "none"}),
+             sv("path", {class: `spark-line ${cls}`, d, fill: "none"}),
+             sv("circle", {class: cls, cx: last[0], cy: last[1], r: 2.2, stroke: "none"}));
+  return svg;
+}
+function renderReadouts() {
+  const st = S.status;
+  if (!st) return;
+  const t = st.traffic, h = S.history;
+  const containers = st.containers, app = containers.filter(c => c.target);
+  const up = app.filter(c => c.state === "running").length;
+  const faults = Object.values(st.faults);
+  const items = [
+    {label: "Throughput", val: t.available ? t.rps.toFixed(1) : "–", unit: "req/s", spark: sparkSVG(h.rps, "c-rps", Math.max(6, ...h.rps.filter(v => v != null)) * 1.1)},
+    {label: "Errors", val: t.available ? pct(t.error_rate) : "–", unit: "of requests", bad: t.available && t.error_rate > 0.02, spark: sparkSVG(h.err, "c-err", Math.max(.25, ...h.err.filter(v => v != null)))},
+    {label: "p95 latency", val: t.available ? ms(t.p95_ms) : "–", unit: "slowest 5%", bad: t.available && t.p95_ms > 2000, spark: sparkSVG(h.p95.map(v => v == null ? null : Math.log10(Math.max(v, 10)) - 1), "c-p95", 3.3)},
+    {label: "Simulated users", val: t.available ? t.users : "–", unit: t.available ? "Locust robots" : "Locust unreachable"},
+    {label: "App services up", val: `${up}/${app.length}`, unit: "on the allowlist", bad: up < app.length},
+    {label: "Active attacks", val: faults.length, unit: faults.length ? "in progress" : "all clear", bad: faults.length > 0},
+  ];
+  $("#readouts").replaceChildren(...items.map(x => el("div", {class: `readout${x.bad ? " bad" : ""}`},
+    el("span", {class: "lbl", text: x.label}),
+    el("div", {class: "val"}, el("b", {text: x.val}), el("small", {text: x.unit})), x.spark || null)));
+}
+
+/* ---------- system state, headline, band ---------- */
+function activeFault() {
+  const faults = Object.values((S.status || {}).faults || {});
+  return faults[0] || null;
+}
+function renderChrome() {
+  const st = S.status, sys = $("#sys"), band = $("#band"), text = $("#sysText");
+  const fault = activeFault();
+  const liveRun = S.live.run;
+  sys.className = "sys" + (!st ? " offline" : fault || liveRun ? " attack" : "");
+  text.textContent = !st ? "Sandbox unreachable" : fault ? `${NAMES[fault.kind]} on ${fault.target}` : liveRun ? "Experiment running" : "All clear";
+  band.className = "band" + (fault ? " attack" : S.replay ? " replay" : "");
+  const h1 = $("#headline");
+  if (S.replay) {
+    const r = S.replay;
+    h1.replaceChildren(`Replaying ${NAMES[r.fault.kind]} on ${r.fault.target}`);
+    return;
+  }
+  if (!st) { h1.textContent = "Waiting for the sandbox"; return; }
+  const t = st.traffic;
+  if (fault) {
+    const left = Math.max(0, Math.round(fault.expires_at - st.now));
+    h1.replaceChildren(el("em", {text: `${NAMES[fault.kind]} on ${fault.target}.`}), " ",
+      t.available ? `${pct(t.error_rate)} of requests failing, p95 ${ms(t.p95_ms)}.` : "", ` Dead-man's switch in ${left} s.`);
+    return;
+  }
+  const app = st.containers.filter(c => c.target);
+  const up = app.filter(c => c.state === "running").length;
+  if (!t.available) { h1.textContent = `${up} of ${app.length} services up. The load generator is not answering.`; return; }
+  h1.textContent = `${t.rps.toFixed(1)} requests a second, ${t.error_rate ? pct(t.error_rate) + " failing" : "none failing"}. ${up === app.length ? `All ${app.length} services up.` : `${up} of ${app.length} services up.`}`;
+}
+function renderLegend() {
+  const actions = ((S.status || {}).traffic || {}).actions || {};
+  $("#legend").replaceChildren(...ACTIONS.map(a => {
+    const x = actions[a] || {rps: 0, fail_per_s: 0};
+    return el("span", {}, el("i", {style: {background: `var(${HUE[a]})`}}), a, " ",
+      el("span", {class: "mono", text: `${x.rps.toFixed(1)}/s`}),
+      x.fail_per_s > 0 ? el("span", {class: "fail mono", text: `${x.fail_per_s.toFixed(1)} failing`}) : null);
+  }));
+}
+
+/* ---------- the bench: layout ---------- */
+const B = {W: 0, H: 0, pos: {}, segs: {}, branches: {}, particles: [], bursts: [], rings: [], shock: 0, accum: {}, last: 0, ctx: null, dpr: 1};
+function segKey(a, b) { return `${a}>${b}`; }
+function buildBench() {
+  const area = $("#benchArea"), nodes = $("#nodes");
+  if (!S.map) { nodes.replaceChildren(el("div", {class: "empty", text: "No dependency map yet. Run: python3 -m chaoslab map"})); return; }
+  const W = area.clientWidth, H = area.clientHeight;
+  B.W = W; B.H = H;
+  const map = S.map, entry = map.entry_point;
+  const services = map.nodes.filter(n => n.kind === "container" && n.id !== entry && (n.user_actions || []).length)
+    .sort((a, b) => (b.share_of_requests || 0) - (a.share_of_requests || 0));
+  const platform = map.nodes.filter(n => n.kind === "container" && n.id !== entry && !services.includes(n));
+  const sw = clamp(W * 0.18, 124, 166), sh = 52;
+  const top = 34, bottom = H - 104;
+  const gap = (bottom - top) / Math.max(services.length, 1);
+  const P = {};
+  services.forEach((n, i) => { P[n.id] = {x: W * 0.575, y: top + gap * (i + 0.5), w: sw, h: sh, node: n, kind: "svc"}; });
+  const mid = services.length ? services.reduce((s, n) => s + P[n.id].y, 0) / services.length : H / 2;
+  P[entry] = {x: W * 0.315, y: mid, w: sw, h: sh, node: map.nodes.find(n => n.id === entry), kind: "svc"};
+  P.__users = {x: Math.max(W * 0.07, 48), y: mid, w: 86, h: sh, kind: "users"};
+  map.nodes.filter(n => n.role === "datastore" && P[n.inside]).forEach(n => {
+    P[n.id] = {x: W * 0.86, y: P[n.inside].y, w: clamp(W * 0.15, 104, 130), h: 42, node: n, kind: "db"};
+  });
+  const left = W * 0.2, right = W * 0.9;
+  platform.forEach((n, i) => {
+    const x = platform.length > 1 ? left + (right - left) * i / (platform.length - 1) : (left + right) / 2;
+    P[n.id] = {x, y: H - 30, w: clamp(W * 0.15, 118, 146), h: 46, node: n, kind: "platform"};
+  });
+  B.pos = P;
+  B.busY = H - 76;
+  // runtime edges
+  B.segs = {};
+  const addSeg = (a, b) => {
+    const k = segKey(a, b);
+    if (B.segs[k] || !P[a] || !P[b]) return B.segs[k];
+    const A = P[a], Z = P[b];
+    const x0 = A.x + A.w / 2, y0 = A.y, x1 = Z.x - Z.w / 2, y1 = Z.y, mx = (x0 + x1) / 2;
+    const pts = [];
+    let len = 0, prev = null;
+    for (let i = 0; i <= 40; i++) {
+      const t = i / 40, u = 1 - t;
+      const x = u * u * u * x0 + 3 * u * u * t * mx + 3 * u * t * t * mx + t * t * t * x1;
+      const y = u * u * u * y0 + 3 * u * u * t * y0 + 3 * u * t * t * y1 + t * t * t * y1;
+      if (prev) len += Math.hypot(x - prev.x, y - prev.y);
+      pts.push({x, y, s: len});
+      prev = {x, y};
+    }
+    return (B.segs[k] = {from: a, to: b, pts, len, x0, y0, x1, y1, mx});
+  };
+  addSeg("__users", entry);
+  for (const dep of map.dependencies) {
+    if (!(dep.phases || []).includes("runtime") || ["configuration", "service_discovery"].includes(dep.purpose)) continue;
+    if (P[dep.consumer] && P[dep.provider] && P[dep.provider].node.active !== false) addSeg(dep.consumer, dep.provider);
+  }
+  // routes per user action
+  B.branches = {};
+  for (const action of ACTIONS) {
+    const feature = map.features[action];
+    if (!feature) continue;
+    const providers = feature.steps.map(id => (map.dependencies.find(d => d.id === id) || {}).provider).filter(p => P[p]);
+    B.branches[action] = providers.map(p => {
+      const route = [B.segs[segKey("__users", entry)], addSeg(entry, p)];
+      const db = map.nodes.find(n => n.role === "datastore" && n.inside === p && (n.user_actions || []).includes(action));
+      if (db && P[db.id]) route.push(addSeg(p, db.id));
+      return route.filter(Boolean);
+    });
+  }
+  // DOM nodes
+  const kids = [];
+  for (const [id, p] of Object.entries(P)) {
+    const n = p.node;
+    const style = {left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`};
+    if (p.kind === "users") {
+      kids.push(el("div", {class: "node users", "data-id": id, style}, el("span", {class: "nm", text: "Users"}), el("span", {class: "mt", text: "Locust robots"}), el("span", {class: "badge info", hidden: true})));
+      continue;
+    }
+    const attackable = n.kind === "container" && n.active !== false;
+    const meta = p.kind === "db" ? "in-process HSQLDB" : n.active === false ? "inactive profile"
+      : n.share_of_requests ? `${Math.round(n.share_of_requests * 100)}% of requests`
+      : ({"config-server": "configuration", "discovery-server": "service registry", "admin-server": "admin console"})[id] || n.role;
+    const cls = `node ${p.kind === "db" ? "db" : p.kind === "platform" ? "platform" : ""}${n.active === false ? " inactive" : ""}`;
+    const inner = [el("span", {class: "nm", text: id}), el("span", {class: "mt", text: meta}), el("span", {class: "badge", hidden: true})];
+    if (p.kind !== "db") inner.push(el("span", {class: "dot", "data-dot": id}));
+    if (attackable) {
+      const b = el("button", {type: "button", class: cls, "data-id": id, style, "aria-label": `Target ${id}`, onclick: () => setTarget(id)}, inner);
+      b.addEventListener("dragover", e => { if (e.dataTransfer.types.includes("text/x-chaoslab-attack")) { e.preventDefault(); b.classList.add("drop"); } });
+      b.addEventListener("dragleave", () => b.classList.remove("drop"));
+      b.addEventListener("drop", e => { e.preventDefault(); b.classList.remove("drop"); const kind = e.dataTransfer.getData("text/x-chaoslab-attack"); if (kind) setMode(kind, false); setTarget(id); });
+      kids.push(b);
+    } else {
+      kids.push(el("div", {class: cls, "data-id": id, style, title: p.kind === "db" ? `Embedded in ${n.inside}: attack ${n.inside} to reach it` : `${id} is inactive`}, inner));
+    }
+  }
+  nodes.replaceChildren(...kids);
+  sizeCanvas();
+  paintNodes();
+}
+function sizeCanvas() {
+  const canvas = $("#flow");
+  B.dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(B.W * B.dpr);
+  canvas.height = Math.round(B.H * B.dpr);
+  B.ctx = canvas.getContext("2d");
+}
+function pointAt(seg, d) {
+  const pts = seg.pts;
+  d = clamp(d, 0, seg.len);
+  let lo = 0, hi = pts.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (pts[m].s < d) lo = m; else hi = m; }
+  const a = pts[lo], b = pts[hi], f = b.s > a.s ? (d - a.s) / (b.s - a.s) : 0;
+  return {x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f};
+}
+
+/* ---------- the bench: what is happening ---------- */
+function benchFaults() {
+  // node id -> {kind, params}: replayed fault, else live faults and container states
+  const out = {};
+  if (S.replay) {
+    const s = S.replay.sample;
+    if (s && s.phase === "fault") out[S.replay.fault.target] = {kind: S.replay.fault.kind, params: S.replay.fault.params || {}};
+    return out;
+  }
+  for (const f of Object.values((S.status || {}).faults || {})) out[f.target] = {kind: f.kind, params: f.params || {}};
+  for (const c of (S.status || {}).containers || []) {
+    if (!B.pos[c.name] || out[c.name]) continue;
+    if (c.state === "paused") out[c.name] = {kind: "pause", params: {}};
+    else if (c.state !== "running") out[c.name] = {kind: "kill", params: {}};
+  }
+  return out;
+}
+function benchTraffic() {
+  // action -> {rps, fail}
+  const live = ((S.status || {}).traffic || {}).actions || {};
+  if (!S.replay) {
+    return Object.fromEntries(ACTIONS.map(a => {
+      const x = live[a] || {rps: 0, fail_per_s: 0};
+      return [a, {rps: x.rps, fail: x.rps ? clamp(x.fail_per_s / x.rps, 0, 1) : (x.fail_per_s > 0 ? 1 : 0)}];
+    }));
+  }
+  const s = S.replay.sample || {rps: 0, action_errors: {}};
+  const mix = S.replay.mix;
+  return Object.fromEntries(ACTIONS.map(a => {
+    const err = (s.action_errors || {})[a];
+    return [a, {rps: s.rps * (mix[a] || 0), fail: err == null ? (s.error_rate || 0) : err}];
+  }));
+}
+function spawn(traffic, faults, dt) {
+  const total = Object.values(traffic).reduce((s, x) => s + x.rps, 0);
+  const scale = total > 0 ? Math.min(1.8, 42 / total) : 0;
+  for (const action of ACTIONS) {
+    const branches = B.branches[action];
+    if (!branches || !branches.length) continue;
+    B.accum[action] = (B.accum[action] || 0) + traffic[action].rps * scale * dt;
+    while (B.accum[action] >= 1) {
+      B.accum[action] -= 1;
+      const doomed = Math.random() < traffic[action].fail;
+      const faultAt = branches.map(route => { const hit = route.find(seg => faults[seg.to]); return hit ? hit.to : null; });
+      let doomBranch = faultAt.findIndex(Boolean);
+      if (doomBranch < 0) doomBranch = 0;
+      const route0 = branches[doomBranch];
+      const doomAt = doomed ? (faultAt[doomBranch] || route0[route0.length - 1].to) : null;
+      branches.forEach((route, i) => {
+        B.particles.push({action, route, seg: 0, d: 0, state: "move", back: false, red: false, wait: 0, alpha: 1,
+          ghost: i > 0, doomAt: i === doomBranch ? doomAt : null, lossChecked: false, jitter: (Math.random() - .5) * 5});
+      });
+      if (B.particles.length > 900) B.particles.splice(0, B.particles.length - 900);
+    }
+  }
+}
+const SPEED = 230;
+function advance(p, dt, faults) {
+  if (p.state === "fall") {
+    p.vy += 520 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.alpha -= dt * 1.3;
+    if (p.alpha <= 0) p.dead = true;
+    return;
+  }
+  if (p.state === "queue") {
+    const f = faults[p.queueAt];
+    if (!f || f.kind !== "pause") { p.state = "move"; }
+    else {
+      p.wait += dt;
+      if (p.wait > 6) { p.state = "move"; p.back = true; p.red = true; }   // timed out
+      else return;
+    }
+  }
+  if (p.state === "dwell") { p.wait -= dt; if (p.wait > 0) return; p.state = "move"; }
+  const seg = p.route[p.seg];
+  const fa = faults[seg.from], fb = faults[seg.to];
+  let speed = SPEED * (p.back ? 1.25 : 1);
+  if ((fa && fa.kind === "delay") || (fb && fb.kind === "delay")) speed *= 0.13;
+  if ((fa && fa.kind === "cpu") || (fb && fb.kind === "cpu")) speed *= 0.55;
+  if (p.back) {
+    p.d -= speed * dt;
+    if (p.d <= 0) {
+      if (p.seg === 0) { p.dead = true; if (!p.ghost) B.rings.push({...B.segs[segKey("__users", S.map.entry_point)].pts[0], t: 0}); return; }
+      p.seg -= 1; p.d = p.route[p.seg].len;
+    }
+    return;
+  }
+  p.d += speed * dt;
+  if (!p.lossChecked && p.d > seg.len * 0.55) {
+    p.lossChecked = true;
+    const lossy = fb && fb.kind === "loss" ? fb : fa && fa.kind === "loss" ? fa : null;
+    if (lossy && Math.random() < (lossy.params.loss_pct ?? 20) / 100) {
+      const at = pointAt(seg, p.d);
+      Object.assign(p, {state: "fall", x: at.x, y: at.y, vx: 30 + Math.random() * 40, vy: -40 - Math.random() * 40});
+      return;
+    }
+  }
+  if (p.d < seg.len) return;
+  const node = seg.to, f = faults[node];
+  p.d = seg.len;
+  if (f && f.kind === "pause") { p.state = "queue"; p.queueAt = node; p.wait = 0; return; }
+  if (p.doomAt === node) { p.back = true; p.red = true; return; }
+  if (f && f.kind === "kill") { const at = pointAt(seg, seg.len); B.bursts.push({x: at.x, y: at.y, t: 0}); p.dead = true; return; }
+  if (f && f.kind === "cpu") { p.state = "dwell"; p.wait = 0.5; }
+  if (p.seg === p.route.length - 1) { p.dead = true; return; }
+  p.seg += 1; p.d = 0; p.lossChecked = false;
+}
+function drawBench(now, faults) {
+  const ctx = B.ctx;
+  if (!ctx) return;
+  const c = S.colors;
+  ctx.setTransform(B.dpr, 0, 0, B.dpr, 0, 0);
+  ctx.clearRect(0, 0, B.W, B.H);
+  // start-up bus
+  const plat = Object.values(B.pos).filter(p => p.kind === "platform");
+  if (plat.length) {
+    const xs = plat.map(p => p.x);
+    ctx.save();
+    ctx.strokeStyle = c.line; ctx.setLineDash([3, 4]); ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(Math.min(...xs, B.pos[S.map.entry_point].x), B.busY); ctx.lineTo(Math.max(...xs), B.busY); ctx.stroke();
+    for (const p of plat) { ctx.beginPath(); ctx.moveTo(p.x, B.busY); ctx.lineTo(p.x, p.y - p.h / 2); ctx.stroke(); }
+    const gw = B.pos[S.map.entry_point];
+    ctx.beginPath(); ctx.moveTo(gw.x, gw.y + gw.h / 2); ctx.lineTo(gw.x, B.busY); ctx.stroke();
+    const svcs = Object.values(B.pos).filter(p => p.kind === "svc" && p !== gw);
+    if (svcs.length) { const low = svcs.reduce((a, b) => a.y > b.y ? a : b); ctx.beginPath(); ctx.moveTo(low.x, low.y + low.h / 2); ctx.lineTo(low.x, B.busY); ctx.stroke(); }
+    ctx.setLineDash([]);
+    ctx.fillStyle = c.ink3; ctx.font = c.font;
+    ctx.textAlign = "right";
+    ctx.fillText("start-up bus: config and discovery", Math.max(...xs) + plat[plat.length - 1].w / 2, B.busY - 7);
+    ctx.restore();
+  }
+  // edges, coloured by prediction
+  const outcomeColor = {unavailable: c.alarm, degraded: c.warn, uncertain: c.ink3, preserved: c.ok};
+  const edgeOutcome = {};
+  if (S.impact && !S.replay) {
+    const rank = {unavailable: 3, degraded: 2, uncertain: 1, preserved: 0};
+    for (const item of S.impact.runtime) {
+      for (let i = 0; i < item.path.length - 1; i++) {
+        const k = segKey(item.path[i], item.path[i + 1]);
+        if (edgeOutcome[k] == null || rank[item.outcome] > rank[edgeOutcome[k]]) edgeOutcome[k] = item.outcome;
+      }
+    }
+  }
+  for (const [k, seg] of Object.entries(B.segs)) {
+    const o = edgeOutcome[k];
+    ctx.strokeStyle = o ? outcomeColor[o] : c.line;
+    ctx.lineWidth = o && o !== "preserved" ? 2.4 : 1.4;
+    ctx.globalAlpha = o === "preserved" ? .7 : 1;
+    ctx.beginPath(); ctx.moveTo(seg.x0, seg.y0); ctx.bezierCurveTo(seg.mx, seg.y0, seg.mx, seg.y1, seg.x1, seg.y1); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.moveTo(seg.x1 - 6, seg.y1 - 3.5); ctx.lineTo(seg.x1, seg.y1); ctx.lineTo(seg.x1 - 6, seg.y1 + 3.5); ctx.stroke();
+  }
+  // prediction shock waves from the target
+  if (S.impact && S.target && B.pos[S.target] && !S.replay && !reduced()) {
+    const p = B.pos[S.target];
+    const worst = S.impact.runtime.some(i => i.outcome === "unavailable") ? c.alarm : S.impact.runtime.some(i => i.outcome === "degraded") ? c.warn : c.ink3;
+    for (let k = 0; k < 3; k++) {
+      const t = ((now / 1000 + k * 0.7) % 2.1) / 2.1;
+      ctx.strokeStyle = worst; ctx.globalAlpha = (1 - t) * .5; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 34 + t * 120, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // queued particles stack up in front of a frozen service
+  const queues = {};
+  for (const p of B.particles) if (p.state === "queue") (queues[p.queueAt] ||= []).push(p);
+  for (const list of Object.values(queues)) list.sort((a, b) => b.wait - a.wait).forEach((p, i) => { p.qi = i; });
+  // particles
+  for (const p of B.particles) {
+    if (p.ghost && p.seg === 0 && !p.back) continue;   // forked copies share the first hop
+    let at;
+    if (p.state === "fall") at = {x: p.x, y: p.y};
+    else if (p.state === "queue") { const seg = p.route[p.seg]; at = pointAt(seg, seg.len - 8 - (p.qi % 14) * 7.5); at.y += Math.floor(p.qi / 14) * 7 - 3; }
+    else at = pointAt(p.route[p.seg], p.d);
+    ctx.globalAlpha = p.alpha;
+    ctx.fillStyle = p.red ? c.alarm : c.hue[p.action];
+    ctx.beginPath(); ctx.arc(at.x, at.y + (p.state === "queue" ? 0 : p.jitter), p.red ? 3.6 : 3.1, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // bursts: an internal call failed
+  ctx.strokeStyle = c.ink3; ctx.lineWidth = 1.4;
+  for (const b of B.bursts) {
+    const r0 = 4 + b.t * 16, r1 = r0 + 5;
+    ctx.globalAlpha = 1 - b.t;
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3 + 0.3;
+      ctx.beginPath(); ctx.moveTo(b.x - 6 + Math.cos(a) * r0, b.y + Math.sin(a) * r0); ctx.lineTo(b.x - 6 + Math.cos(a) * r1, b.y + Math.sin(a) * r1); ctx.stroke();
+    }
+  }
+  // rings: an error reached a user
+  ctx.strokeStyle = c.alarm;
+  for (const r of B.rings) { ctx.globalAlpha = 1 - r.t; ctx.beginPath(); ctx.arc(r.x - 4, r.y, 6 + r.t * 22, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+}
+function drawStatic(faults) {
+  // reduced motion: edge thickness shows traffic, no moving dots
+  drawBench(0, faults);
+}
+function frame(now) {
+  const dt = Math.min(0.05, B.last ? (now - B.last) / 1000 : 0.016);
+  B.last = now;
+  if (S.map && B.ctx) {   // browsers already pause animation frames in background tabs
+    if (S.replay) stepReplay(now);
+    const faults = benchFaults();
+    if (reduced()) { B.particles = []; drawStatic(faults); }
+    else {
+      spawn(benchTraffic(), faults, dt);
+      for (const p of B.particles) advance(p, dt, faults);
+      B.particles = B.particles.filter(p => !p.dead);
+      for (const b of B.bursts) b.t += dt * 2.2;
+      for (const r of B.rings) r.t += dt * 1.6;
+      B.bursts = B.bursts.filter(b => b.t < 1);
+      B.rings = B.rings.filter(r => r.t < 1);
+      drawBench(now, faults);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+function paintNodes() {
+  const faults = benchFaults();
+  const containers = Object.fromEntries(((S.status || {}).containers || []).map(c => [c.name, c]));
+  const impact = {};
+  if (S.impact && !S.replay) for (const item of S.impact.runtime) if (!item.feature && item.outcome !== "preserved") impact[item.component] = item.outcome;
+  document.querySelectorAll("#nodes .node").forEach(node => {
+    const id = node.getAttribute("data-id");
+    const f = faults[id];
+    node.classList.toggle("target", id === S.target && !S.replay);
+    node.classList.toggle("dim", S.mode === "spike" && node.tagName === "BUTTON" && id !== S.map.entry_point && !S.replay);
+    for (const o of ["unavailable", "degraded", "uncertain"]) node.classList.toggle(`o-${o}`, impact[id] === o);
+    node.classList.toggle("is-down", !!f && f.kind === "kill");
+    node.classList.toggle("is-frozen", !!f && f.kind === "pause");
+    node.classList.toggle("is-hot", !!f && f.kind === "cpu");
+    const badge = node.querySelector(".badge");
+    let label = null;
+    if (f) label = {kill: "down", pause: "frozen", delay: `+${f.params.delay_ms ?? ""} ms`, loss: `${f.params.loss_pct ?? ""}% loss`,
+                    cpu: `${f.params.cpus ?? ""} cpu`, spike: null}[f.kind];
+    if (id === "__users") {
+      const spike = Object.values(faults).find(x => x.kind === "spike");
+      label = spike ? `×${spike.params.multiplier} users` : null;
+    }
+    if (badge) { badge.hidden = !label; badge.textContent = label || ""; }
+    const dot = node.querySelector(".dot");
+    const c = containers[id];
+    if (dot) {
+      dot.className = "dot " + (!c ? "" : c.state === "paused" ? "warn" : c.state !== "running" || c.health === "unhealthy" ? "down" : c.health === "starting" ? "warn" : "up");
+      dot.title = c ? (c.state === "running" ? c.health || "running" : c.state) : "unknown";
+    }
+  });
+}
+
+/* ---------- the console ---------- */
+function renderAttackGrid() {
+  $("#attackGrid").replaceChildren(...Object.keys(NAMES).map((kind, i) => el("button", {
+    type: "button", class: "attack", "aria-pressed": String(S.mode === kind), draggable: "true", title: `${NAMES[kind]}: drag onto a service, or press ${i + 1}`,
+    onclick: () => setMode(kind, true),
+    ondragstart: e => { e.dataTransfer.setData("text/x-chaoslab-attack", kind); e.dataTransfer.effectAllowed = "copy"; },
+  }, el("span", {class: "row"}, glyph(kind, 18), el("kbd", {text: i + 1})), NAMES[kind])));
+}
+function attackInfo() { return S.attacks.find(a => a.kind === S.mode) || {}; }
+function renderAbout() {
+  const a = attackInfo();
+  $("#about").replaceChildren(el("p", {text: SIMULATES[S.mode]}),
+    el("dl", {}, el("dt", {text: "How"}), el("dd", {text: a.mechanism || "–"}), el("dt", {text: "Undo"}), el("dd", {text: a.undo || "–"})));
+}
+function renderTargetLine() {
+  const box = $("#targetLine");
+  if (!S.target) { box.replaceChildren(el("span", {class: "hint", text: "Click a service, or drag an attack onto one."})); return; }
+  const node = (S.map && S.map.nodes.find(n => n.id === S.target)) || {};
+  box.replaceChildren(el("b", {text: S.target}), el("span", {class: "hint", text: node.share_of_requests ? `${Math.round(node.share_of_requests * 100)}% of requests pass through it` : node.role || ""}));
+}
+function renderParams() {
+  const spec = UI_PARAM[S.mode];
+  const fields = [];
+  if (spec) {
+    const limit = (attackInfo().limits || {})[spec.name] || [spec.min, spec.max];
+    const lo = Math.max(spec.min, limit[0]), hi = Math.min(spec.max, limit[1]);
+    const value = clamp(S.params[spec.name] ?? spec.value, lo, hi);
+    S.params[spec.name] = value;
+    const out = el("output", {for: "paramInput", text: spec.fmt(value)});
+    fields.push(el("div", {class: "field"}, el("label", {for: "paramInput"}, el("span", {text: spec.label}), out),
+      el("input", {id: "paramInput", type: "range", min: lo, max: hi, step: spec.step, value,
+        oninput: e => { S.params[spec.name] = Number(e.target.value); out.textContent = spec.fmt(e.target.value); }})));
+  }
+  const dOut = el("output", {for: "durationInput", text: `${S.duration} s`});
+  fields.push(el("div", {class: "field"}, el("label", {for: "durationInput"}, el("span", {text: "Fault lasts at most"}), dOut),
+    el("input", {id: "durationInput", type: "range", min: 10, max: 120, step: 5, value: S.duration,
+      oninput: e => { S.duration = Number(e.target.value); dOut.textContent = `${S.duration} s`; renderLaunchNote(); }})));
+  $("#params").replaceChildren(...fields);
+}
+function renderForecast() {
+  const box = $("#forecast");
+  if (!S.impact || !S.target) { box.replaceChildren(el("span", {class: "fine", text: "The forecast appears when a target is chosen."})); return; }
+  const outcome = featureOutcomes();
+  const counts = {unavailable: 0, degraded: 0, uncertain: 0, preserved: 0};
+  for (const o of Object.values(outcome)) counts[o.key] = (counts[o.key] || 0) + 1;
+  const color = {unavailable: "var(--alarm)", degraded: "var(--warn)", uncertain: "var(--ground-2)", preserved: "var(--ok)"};
+  const label = {unavailable: "unavailable", degraded: "degraded", uncertain: "uncertain", preserved: "unaffected"};
+  const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+  box.replaceChildren(
+    el("div", {class: "step", style: {margin: 0}}, el("span", {text: "Forecast for the five user actions"})),
+    el("div", {class: "bars"}, Object.entries(counts).filter(([, n]) => n).map(([k, n]) => el("i", {style: {flex: n / total, background: color[k]}}))),
+    el("div", {class: "counts"}, Object.entries(counts).filter(([, n]) => n).map(([k, n]) => el("span", {}, el("b", {text: n}), ` ${label[k]}`))),
+    el("a", {class: "link", href: "#blast", text: "See what users would feel"}));
+}
+function renderLaunchNote() {
+  const busy = S.live.run || (S.live.launch && S.live.launch.running) || activeFault();
+  const btn = $("#launch");
+  btn.disabled = !S.target || !!busy || S.launching;
+  $(".txt", btn).textContent = S.launching ? "Starting…" : busy ? "An experiment is running" : !S.target ? "Choose a target first" : `Hold to launch ${NAMES[S.mode].toLowerCase()}`;
+  $("#launchNote").textContent = `Hold for one second. The run takes about ${20 + S.duration + 15} s: 20 s of steady state, up to ${S.duration} s of fault, then recovery. The watchdog, timer, kill switch and dead-man's switch all apply.`;
+}
+function setMode(kind, refresh = true) {
+  S.mode = kind;
+  if (kind === "spike" && S.map) S.target = S.map.entry_point;
+  renderAttackGrid(); renderAbout(); renderParams(); renderLaunchNote(); renderTargetLine();
+  if (refresh) predict();
+}
+function setTarget(id) {
+  if (S.mode === "spike" && S.map && id !== S.map.entry_point) { toast(`Users enter through ${S.map.entry_point}, so a traffic spike always targets it.`); id = S.map.entry_point; }
+  S.target = id;
+  renderTargetLine(); renderLaunchNote();
+  predict();
+}
+async function predict() {
+  if (!S.target || !S.map) { S.impact = null; renderImpact(); return; }
+  try { S.impact = await getJSON(`/api/impact?target=${encodeURIComponent(S.target)}&failure=${S.mode}`); }
+  catch (err) { S.impact = null; toast(`Prediction failed: ${err.message}`); }
+  renderImpact();
+}
+
+/* hold to launch */
+(function holdToLaunch() {
+  const btn = $("#launch"), fill = $(".fill", btn);
+  let start = 0, raf = 0;
+  const cancel = () => { cancelAnimationFrame(raf); start = 0; fill.style.width = "0"; };
+  const tick = now => {
+    const f = Math.min(1, (now - start) / 1000);
+    fill.style.width = `${f * 100}%`;
+    if (f >= 1) { cancel(); launch(); return; }
+    raf = requestAnimationFrame(tick);
+  };
+  btn.addEventListener("pointerdown", e => { if (btn.disabled) return; e.preventDefault(); btn.setPointerCapture(e.pointerId); start = performance.now(); raf = requestAnimationFrame(tick); });
+  btn.addEventListener("pointerup", cancel);
+  btn.addEventListener("pointercancel", cancel);
+  btn.addEventListener("lostpointercapture", cancel);
+  let armedKey = 0;
+  btn.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (e.repeat || btn.disabled) return;
+    if (Date.now() - armedKey < 3000) { armedKey = 0; launch(); return; }
+    armedKey = Date.now();
+    $(".txt", btn).textContent = "Press again to launch";
+    setTimeout(renderLaunchNote, 3000);
+  });
+})();
+async function launch() {
+  if (!S.target) return;
+  const spec = UI_PARAM[S.mode];
+  const body = {kind: S.mode, target: S.target, duration_s: S.duration, params: spec ? {[spec.name]: S.params[spec.name]} : {}};
+  S.launching = true; renderLaunchNote();
+  $("#launchError").hidden = true;
+  try {
+    const started = await post("/api/launch", body);
+    toast(`Launched: ${started.command}`);
+    await pollLive();
+  } catch (err) {
+    showLaunchError("Not launched.", err.message);
+  } finally {
+    S.launching = false; renderLaunchNote();
+  }
+}
+function showLaunchError(title, message, output) {
+  const box = $("#launchError");
+  box.hidden = false;
+  box.replaceChildren(el("div", {class: "err-box"}, el("b", {text: `${title} `}), message, output && output.length ? el("pre", {text: output.join("\n")}) : null));
+}
+
+/* ---------- live experiment ---------- */
+function livePhase(events) {
+  const kinds = events.map(e => e.kind);
+  if (events.some(e => e.kind === "recovery" && /recovered|NOT recovered/.test(e.message || ""))) return "report";
+  if (kinds.includes("revert")) return "recovery";
+  if (kinds.includes("inject")) return "fault";
+  return "baseline";
+}
+function renderLiveView() {
+  const run = S.live.run, launch = S.live.launch;
+  const view = $("#liveView"), arm = $("#armView");
+  if (!run && !(launch && launch.running)) { view.hidden = true; arm.hidden = false; return; }
+  arm.hidden = true; view.hidden = false;
+  if (!run) {
+    view.replaceChildren(el("div", {class: "live-head"}, el("span", {class: "tag blue"}, el("i"), "starting")),
+      el("h2", {text: `${NAMES[launch.kind]} on ${launch.target}`}), el("p", {class: "fine", text: "Checking the allowlist and the system's steady state."}));
+    return;
+  }
+  const events = run.events, tl = run.timeline;
+  const now = tl.length ? tl[tl.length - 1].elapsed : 0;
+  const phase = livePhase(events);
+  const start = events.find(e => e.kind === "start") || {};
+  const planned = Number((/for up to (\d+)s/.exec(start.message || "") || [])[1] || 60);
+  const inject = events.find(e => e.kind === "inject"), revert = events.find(e => e.kind === "revert");
+  const steps = [
+    ["baseline", "Baseline", inject ? `${secs(inject.elapsed)}` : `${Math.max(0, Math.round(20 - now))} s left`],
+    ["fault", "Under fault", revert && inject ? secs(revert.elapsed - inject.elapsed) : inject ? `${Math.max(0, Math.round(planned - (now - inject.elapsed)))} s left` : `up to ${planned} s`],
+    ["recovery", "Recovery", phase === "report" ? "done" : revert ? `${secs(now - revert.elapsed)}` : "waits for 10 s of normal service"],
+    ["report", "Report", phase === "report" ? "writing" : ""],
+  ];
+  const order = steps.map(s => s[0]);
+  const at = order.indexOf(phase);
+  const last = tl[tl.length - 1] || {};
+  const fault = run.fault || {};
+  view.replaceChildren(
+    el("div", {class: "live-head"}, el("span", {class: "tag"}, el("i"), "live"), el("span", {class: "fine mono", text: run.id})),
+    el("h2", {text: `${NAMES[fault.kind] || fault.kind} on ${fault.target}`}),
+    el("ol", {class: "stepper"}, steps.map(([key, name, t], i) => el("li", {class: i < at ? "done" : i === at ? "now" : ""}, el("span"), el("span", {text: name}), el("span", {class: "t", text: t})))),
+    el("div", {class: "mini"},
+      el("div", {}, el("span", {text: "throughput"}), el("b", {text: last.rps != null ? last.rps.toFixed(1) : "–"})),
+      el("div", {}, el("span", {text: "errors"}), el("b", {text: pct(last.error_rate)})),
+      el("div", {}, el("span", {text: "p95"}), el("b", {text: ms(last.p95_ms)}))),
+    last.semantic_correctness ? el("p", {class: "fine", text: `Owner 6's page: ${last.semantic_correctness}`}) : null,
+    el("a", {class: "link", href: "#recorder", text: "Watch the recording"}),
+    el("p", {class: "fine", text: "Press the emergency stop at any time to undo the fault."}));
+}
+async function pollLive() {
+  try {
+    const live = await getJSON("/api/live");
+    const wasId = S.lastLiveId;
+    S.live = live;
+    if (live.run) {
+      if (wasId !== live.run.id) S.followLive = true;   // a new run started: follow it
+      S.lastLiveId = live.run.id;
+      if (S.followLive) { S.selected = live.run.id; S.detail = {...live.run, live: true}; renderDetail(); }
+      renderRunList();
+    } else if (wasId) {
+      S.lastLiveId = null;
+      S.followLive = false;
+      await loadRuns();
+      await selectRun(wasId);
+      const run = S.runs.find(r => r.id === wasId);
+      if (run) toast(`${NAMES[run.fault.kind]} on ${run.fault.target}: ${verdict(run).label}${run.recovery_s != null ? `, recovered in ${secs(run.recovery_s)}` : ""}.`, {label: "Open the recording", run: () => goTo("#recorder")});
+    }
+    const l = live.launch;
+    if (l && !l.running && l.exit_code && !live.run && Date.now() / 1000 - l.started < 300 && S.shownFailure !== l.started) {
+      // survives a reload: the server remembers the last launch for as long as it runs
+      S.shownFailure = l.started;
+      const refused = (l.output || []).find(line => line.startsWith("REFUSED:"));
+      if (refused) showLaunchError("Refused, nothing was touched.", `${refused.replace("REFUSED: ", "")}. Wait until errors are below 5% and launch again.`);
+      else showLaunchError("Stopped early.", `The experiment exited with code ${l.exit_code}.`, l.output);
+    }
+  } catch (err) { /* keep the last view */ }
+  renderLiveView(); renderLaunchNote(); renderChrome(); renderInterlocks();
+}
+
+/* ---------- blast radius ---------- */
+function featureOutcomes() {
+  // feature name -> {key, item | text}
+  const out = {};
+  if (!S.impact || !S.map) return out;
+  const target = S.impact.scenario.target;
+  const byFeature = {};
+  const services = [];
+  for (const item of S.impact.runtime) {
+    if (item.feature) (byFeature[item.feature] ||= []).push(item);
+    else if (item.component !== target) services.push(item);
+  }
+  const shaky = new Set(services.filter(i => i.outcome !== "preserved").map(i => i.component));
+  for (const [name, feature] of Object.entries(S.map.features)) {
+    if (feature.active === false) continue;
+    const items = byFeature[name];
+    const path = new Set([S.map.entry_point, ...feature.steps.map(step => (S.map.dependencies.find(d => d.id === step) || {}).provider)]);
+    if (items && items.length) {
+      const outcomes = [...new Set(items.map(i => i.outcome))];
+      out[name] = outcomes.length === 1 ? {key: outcomes[0], item: items[0]} : {key: "uncertain", text: items.map(i => i.behavior).join(" / ")};
+    } else if (path.has(target)) out[name] = {key: "uncertain", text: "On its path, but no source-backed rule covers this attack yet."};
+    else {
+      const via = [...path].filter(p => shaky.has(p));
+      out[name] = via.length ? {key: "uncertain", text: `Indirect: depends on ${via.join(", ")}, whose behaviour under this attack is uncertain.`}
+                             : {key: "preserved", text: `Not on its path: it never calls ${target}.`};
+    }
+  }
+  return out;
+}
+function renderImpact() {
+  paintNodes(); renderForecast();
+  const featuresBox = $("#features"), restartBox = $("#restart");
+  if (!S.impact) { featuresBox.replaceChildren(); restartBox.replaceChildren(); $("#blastLede").textContent = "Pick an attack and a service on the bench."; return; }
+  const target = S.impact.scenario.target;
+  $("#blastLede").replaceChildren(`${NAMES[S.impact.scenario.failure]} on `, el("b", {text: target}),
+    `, predicted from the evidence-backed dependency model before anything is injected. Snapshot ${S.impact.snapshot_id}.`);
+  const outcomes = featureOutcomes();
+  const label = {unavailable: "unavailable", degraded: "degraded", uncertain: "uncertain", preserved: "unaffected"};
+  featuresBox.replaceChildren(...ACTIONS.filter(a => outcomes[a]).map(a => {
+    const o = outcomes[a], item = o.item;
+    const how = item ? [item.http_status ? `HTTP ${item.http_status}` : null, item.latency, item.basis ? `${item.basis}` : null].filter(Boolean).join(" · ") : null;
+    return el("article", {class: "feature"}, el("div", {class: "hue", style: {background: `var(${HUE[a]})`}}),
+      el("h3", {text: a}), el("span", {class: `chip ${o.key === "preserved" ? "preserved" : o.key}`, text: label[o.key]}),
+      el("p", {class: "why", text: item ? item.behavior : o.text}), how ? el("p", {class: "how", text: how}) : null);
+  }));
+  const services = S.impact.runtime.filter(i => !i.feature && i.component !== target);
+  const restart = S.impact.startup_restart;
+  const kids = [];
+  if (services.length) {
+    kids.push(el("h3", {text: "Other services while it runs"}));
+    services.slice(0, 6).forEach(i => kids.push(el("div", {class: `line-card ${i.outcome}`}, el("div", {}, el("b", {text: i.component}), " ", el("span", {class: `chip ${i.outcome}`, text: i.outcome})), el("p", {text: i.behavior}))));
+  }
+  kids.push(el("h3", {text: "If it restarts"}));
+  if (restart.length) restart.slice(0, 6).forEach(i => kids.push(el("div", {class: `line-card ${i.outcome}`},
+    el("div", {}, el("b", {text: i.component}), " ", el("span", {class: `chip ${i.outcome}`, text: i.outcome})),
+    el("p", {text: i.behavior + (i.data ? ` Data: ${i.data}.` : "")}))));
+  else kids.push(el("p", {class: "fine", text: "No start-up or restart impact predicted for this attack."}));
+  restartBox.replaceChildren(...kids);
+}
+
+/* ---------- test matrix ---------- */
+function verdict(run) {
+  if (run.pending) return {key: "pending", label: "recovering"};
+  if (run.outcome === "refused") return {key: "refused", label: "refused"};
+  if (run.outcome === "stopped" || run.outcome === "interrupted") return {key: "stopped", label: "stopped early"};
+  if (run.data_loss) return {key: "lost", label: "data lost"};
+  if (run.recovered === false) return {key: "stuck", label: "no recovery"};
+  if (run.outcome === "aborted") return {key: "tripped", label: "tripped"};
+  return {key: "held", label: "held"};
+}
+function matrixServices() {
+  const allow = ((S.status || {}).containers || []).filter(c => c.target).map(c => c.name);
+  const order = ["api-gateway", "customers-service", "visits-service", "vets-service", "config-server", "discovery-server", "admin-server"];
+  const names = allow.length ? allow : order;
+  return [...names].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+}
+function renderMatrix() {
+  const services = matrixServices(), kinds = Object.keys(NAMES), entry = S.map ? S.map.entry_point : "api-gateway";
+  const latest = {}, counts = {};
+  for (const run of S.runs) {
+    const k = `${run.fault.kind}|${run.fault.target}`;
+    counts[k] = (counts[k] || 0) + 1;
+    if (!latest[k] || (latest[k].outcome === "refused" && run.outcome !== "refused")) latest[k] = run;
+  }
+  let possible = 0, tested = 0, weak = 0;
+  const rows = services.map(svc => el("tr", {}, el("th", {scope: "row", text: svc}), kinds.map(kind => {
+    const allowed = kind !== "spike" || svc === entry;
+    if (!allowed) return el("td", {}, el("div", {class: "cell na", title: `Users enter through ${entry}, so spikes only target it`}, "–"));
+    possible += 1;
+    const run = latest[`${kind}|${svc}`];
+    if (!run) return el("td", {}, el("button", {type: "button", class: "cell open", onclick: () => { setMode(kind, false); setTarget(svc); goTo("#bench"); }, "aria-label": `Arm ${NAMES[kind]} on ${svc}`}, "+ arm"));
+    const v = verdict(run);
+    if (v.key !== "refused") tested += 1;
+    if (["tripped", "lost", "stuck"].includes(v.key)) weak += 1;
+    const n = counts[`${kind}|${svc}`];
+    return el("td", {}, el("button", {type: "button", class: `cell ${v.key}`, onclick: () => { selectRun(run.id); goTo("#recorder"); },
+      title: `${NAMES[kind]} on ${svc}: ${v.label}${run.abort_reason ? ` (${run.abort_reason})` : ""}. ${plural(n, "run")}. Click to replay.`},
+      el("b", {text: v.label}), el("span", {text: `${run.recovery_s != null ? `recovered ${secs(run.recovery_s)}` : run.outcome}${n > 1 ? ` · ${n} runs` : ""}`})));
+  })));
+  $("#matrixTable").replaceChildren(
+    el("caption", {class: "eyebrow", style: {textAlign: "left", padding: "0 0 6px 6px"}, text: "Latest run per service and attack"}),
+    el("thead", {}, el("tr", {}, el("th", {text: ""}), kinds.map(kind => el("th", {scope: "col"}, el("span", {}, glyph(kind, 15), NAMES[kind]))))),
+    el("tbody", {}, rows));
+  const t = S.totals || {};
+  const figures = [
+    [t.experiments ?? 0, "experiments run"],
+    [`${tested}/${possible}`, "service × attack pairs tested"],
+    [weak, weak === 1 ? "weakness found" : "weaknesses found"],
+    [t.median_recovery_s != null ? secs(t.median_recovery_s) : "–", "median recovery"],
+    [t.predictions_judged ? `${Math.round(t.predictions_matched / t.predictions_judged * 100)}%` : "–", t.predictions_judged ? `predictions right (${t.predictions_matched} of ${t.predictions_judged})` : "predictions right"],
+    [t.data_loss_runs ?? 0, t.data_loss_runs === 1 ? "run lost data" : "runs lost data"],
+  ];
+  $("#figures").replaceChildren(...figures.map(([n, w]) => el("div", {}, el("b", {text: n}), el("span", {text: w}))));
+}
+
+/* ---------- recorder ---------- */
+function renderRunList() {
+  const box = $("#runlist");
+  const items = [];
+  if (S.live.run && !S.runs.some(r => r.id === S.live.run.id)) {
+    const f = S.live.run.fault || {};
+    items.push(el("button", {type: "button", class: "run", "aria-current": String(S.selected === S.live.run.id), onclick: () => { S.followLive = true; S.selected = S.live.run.id; S.detail = {...S.live.run, live: true}; renderDetail(); renderRunList(); }},
+      el("span", {class: "glyph", style: {background: "var(--alarm)", color: "var(--alarm-ink)"}}, glyph(f.kind, 15)),
+      el("span", {}, el("div", {class: "t1", text: `${NAMES[f.kind] || f.kind} · ${f.target}`}), el("div", {class: "t2", text: `${clock(S.live.run.id)} · running now`})),
+      el("span", {class: "tag"}, el("i"), "live")));
+  }
+  for (const run of S.runs) {
+    const v = verdict(run);
+    items.push(el("button", {type: "button", class: "run", "aria-current": String(run.id === S.selected), onclick: () => selectRun(run.id)},
+      el("span", {class: "glyph"}, glyph(run.fault.kind, 15)),
+      el("span", {}, el("div", {class: "t1", text: `${NAMES[run.fault.kind] || run.fault.kind} · ${run.fault.target}`}),
+        el("div", {class: "t2", text: `${clock(run.id)} · ${run.recovery_s != null ? `recovered ${secs(run.recovery_s)}` : run.outcome}`})),
+      el("span", {class: `chip ${v.key}`, text: v.label})));
+  }
+  box.replaceChildren(...(items.length ? items : [el("p", {class: "empty-note", text: "No experiments yet. Arm one on the bench."})]));
+}
+async function selectRun(id) {
+  S.followLive = S.live.run && S.live.run.id === id;
+  S.selected = id;
+  renderRunList();
+  if (S.followLive) { S.detail = {...S.live.run, live: true}; renderDetail(); return; }
+  try { S.detail = await getJSON(`/api/runs/${encodeURIComponent(id)}`); renderDetail(); }
+  catch (err) { toast(`Could not load ${id}: ${err.message}`); }
+}
+function renderDetail() {
+  const d = S.detail, box = $("#detail");
+  if (!d) { box.replaceChildren(el("p", {class: "empty-note", text: "Pick a run on the left."})); return; }
+  const fault = d.fault || {};
+  const run = S.runs.find(r => r.id === d.id);
+  const v = d.live ? {key: "pending", label: "live"} : run ? verdict(run) : {key: "none", label: d.outcome};
+  const head = el("div", {class: "detail-head"},
+    el("span", {class: "glyph big"}, glyph(fault.kind, 22)),
+    el("div", {class: "ttl"}, el("h3", {text: `${NAMES[fault.kind] || fault.kind} on ${fault.target}`}),
+      el("p", {class: "why", text: d.live ? `Recording now · ${d.id}` : `${clock(d.id)} · ${d.outcome}${d.abort_reason ? ` · ${d.abort_reason}` : ""}`})),
+    d.live ? el("span", {class: "tag"}, el("i"), "live") : el("span", {class: `chip ${v.key}`, text: v.label}),
+    d.live ? null : el("button", {type: "button", class: "btn", onclick: () => playChart(), text: "▶ Play"}),
+    d.live || !(d.timeline || []).length ? null : el("button", {type: "button", class: "btn primary", onclick: () => startReplay(d), text: "Replay on the bench"}));
+  const kids = [head];
+  if (!d.live) {
+    kids.push(el("div", {class: "stats"}, [
+      ["fault active", secs(d.fault_active_s)],
+      ["first breach", d.time_to_first_breach_s != null ? `after ${secs(d.time_to_first_breach_s)}` : "none"],
+      ["recovery", d.recovered ? secs(d.recovery_s) : d.outcome === "refused" ? "–" : "not recovered"],
+      ["peak errors", pct(d.peak_error_rate)],
+      ["peak p95", ms(d.peak_p95_ms)],
+      ["data loss", d.data_loss ? plural(d.data_loss.missing_visit_ids.length, "visit") : "none"],
+    ].map(([k, val]) => el("div", {}, el("span", {text: k}), el("b", {text: val})))));
+  }
+  const chart = el("div", {class: "chart"});
+  kids.push(chart);
+  if (d.data_loss) kids.push(el("div", {class: "callout"}, el("b", {text: "Data loss. "}),
+    `${plural(d.data_loss.missing_visit_ids.length, "visit")} written before the fault did not survive the restart` +
+    (d.data_loss.canary_lost ? `, including this run's canary visit ${d.data_loss.canary_visit_id}. ` : ". ") + "The service came back with an empty in-memory database."));
+  if (!d.live) kids.push(el("div", {class: "two"}, protocol(d), actionBars(d)));
+  kids.push(eventLog(d));
+  box.replaceChildren(...kids);
+  drawSeismograph(chart, d);
+}
+function protocol(d) {
+  const rows = Object.entries(d.prediction_comparison || {});
+  const wrap = el("div", {});
+  if (!rows.length) { wrap.append(el("p", {class: "fine", text: "This run has no predictions to check."})); return wrap; }
+  const verdictChip = m => m === "matched" ? el("span", {class: "chip pass", text: "pass"}) : m === "contradicted" ? el("span", {class: "chip fail", text: "fail"}) : el("span", {class: "chip unobserved", text: "not seen"});
+  wrap.append(el("table", {class: "protocol"},
+    el("caption", {text: "Test protocol: prediction against observation"}),
+    el("thead", {}, el("tr", {}, ["User action", "Predicted", "Observed", "Result", "Failed / requests"].map(h => el("th", {scope: "col", text: h})))),
+    el("tbody", {}, rows.map(([name, c]) => el("tr", {},
+      el("td", {text: name}), el("td", {text: c.predicted}), el("td", {text: c.observed}), el("td", {}, verdictChip(c.match)),
+      el("td", {class: "n", text: c.fault_requests ? `${c.fault_failures ?? "?"} / ${c.fault_requests}` : "–"}))))));
+  return wrap;
+}
+function actionBars(d) {
+  const wrap = el("div", {}, el("div", {style: {fontWeight: 700, paddingBottom: "8px"}, text: "Errors by user action, fault and recovery"}));
+  const box = el("div", {class: "actionbars"});
+  for (const [name, i] of Object.entries(d.impact_by_action || {})) {
+    const val = i.fault_error_rate || 0;
+    box.append(el("div", {},
+      el("div", {class: "t"}, el("span", {}, el("i", {style: {background: HUE[name] ? `var(${HUE[name]})` : "var(--ink-3)"}}), name, i.uses_target ? el("span", {class: "fine", text: "uses target"}) : null), el("span", {class: "mono", text: pct(i.fault_error_rate)})),
+      el("div", {class: "track"}, el("span", {style: {width: `${Math.max(val * 100, val ? 2 : 0)}%`}}))));
+  }
+  if (d.collateral_actions && d.collateral_actions.length) box.append(el("p", {class: "fine", text: `Collateral damage: ${d.collateral_actions.join(", ")}`}));
+  wrap.append(box);
+  return wrap;
+}
+function eventLog(d) {
+  const events = d.events || [];
+  return el("details", {class: "log", open: d.live ? true : null},
+    el("summary", {text: `Event log (${events.length})`}),
+    el("ol", {}, events.map(e => el("li", {}, el("span", {text: `+${Number(e.elapsed || 0).toFixed(1)}s`}), el("span", {text: e.kind}), el("span", {text: e.message || ""})))));
+}
+function drawSeismograph(container, d) {
+  const tl = (d.timeline || []).filter(s => s.elapsed != null);
+  if (tl.length < 2) { container.append(el("p", {class: "fine", style: {padding: "28px 12px"}, text: d.live ? "Waiting for the first seconds of data…" : "No timeline recorded."})); return; }
+  const events = d.events || [];
+  const W = Math.max(480, Math.round(container.clientWidth - 16) || 1000), L = 64, R = 14, T = 40, laneH = 84, gap = 22, H = T + laneH * 3 + gap * 2 + 30;
+  const x0 = tl[0].elapsed;
+  const startEv = events.find(e => e.kind === "start");
+  const planned = Number((/for up to (\d+)s/.exec((startEv || {}).message || "") || [])[1] || 0);
+  const x1 = d.live ? Math.max(tl[tl.length - 1].elapsed, 20 + planned + 15) : tl[tl.length - 1].elapsed;
+  const X = t => L + (t - x0) / Math.max(x1 - x0, 1) * (W - L - R);
+  const lanes = [T, T + laneH + gap, T + 2 * (laneH + gap)];
+  const baseRps = (d.baseline || {}).rps ?? (events.find(e => e.kind === "baseline" && e.rps != null) || {}).rps;
+  const g = d.guardrails || (startEv || {}).guardrails || {};
+  const maxRps = Math.max(...tl.map(s => s.rps || 0), baseRps || 0, 1) * 1.15;
+  const maxErr = Math.max(.3, ...tl.map(s => s.error_rate || 0));
+  const lo = 1, hi = Math.log10(Math.max(2500, ...tl.map(s => s.p95_ms || 0)) * 1.2);
+  const Y = {
+    rps: v => lanes[0] + laneH - v / maxRps * laneH,
+    error_rate: v => lanes[1] + laneH - v / maxErr * laneH,
+    p95_ms: v => lanes[2] + laneH - (Math.log10(Math.max(v, 10)) - lo) / (hi - lo) * laneH,
+  };
+  const svg = sv("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Timeline of ${d.id}: throughput, errors and p95 latency per second`});
+  const bands = [];
+  tl.forEach((s, i) => {
+    const last = bands[bands.length - 1];
+    if (!last || last.phase !== s.phase) bands.push({phase: s.phase, start: i ? tl[i - 1].elapsed : s.elapsed, end: s.elapsed});
+    else last.end = s.elapsed;
+  });
+  for (const b of bands) {
+    svg.append(sv("rect", {class: `sg-band-${b.phase}`, x: X(b.start), y: T - 6, width: Math.max(X(b.end) - X(b.start), 1), height: laneH * 3 + gap * 2 + 12}));
+    svg.append(sv("text", {class: `ph-${b.phase}`, x: X(b.start) + 6, y: T - 12, text: b.phase === "fault" ? "under fault" : b.phase}));
+  }
+  ["throughput  req/s", "errors", "p95  log scale"].forEach((name, i) => {
+    svg.append(sv("line", {class: "sg-axis", x1: L, x2: W - R, y1: lanes[i] + laneH, y2: lanes[i] + laneH}));
+    svg.append(sv("text", {x: 4, y: lanes[i] + 10, text: name.split("  ")[0]}));
+  });
+  svg.append(sv("text", {x: 4, y: lanes[0] + laneH, text: "0"}), sv("text", {x: 4, y: lanes[0] + 26, text: maxRps.toFixed(0)}));
+  svg.append(sv("text", {x: 4, y: lanes[1] + 26, text: pct(maxErr)}), sv("text", {x: 4, y: lanes[1] + laneH, text: "0%"}));
+  svg.append(sv("text", {x: 4, y: lanes[2] + 26, text: ms(Math.pow(10, hi))}), sv("text", {x: 4, y: lanes[2] + laneH, text: "10 ms"}));
+  const limit = (y, label) => { svg.append(sv("line", {class: "sg-limit", x1: L, x2: W - R, y1: y, y2: y})); svg.append(sv("text", {class: "lim", x: W - R - 4, y: y - 4, "text-anchor": "end", text: label})); };
+  if (baseRps && g.min_rps_ratio) limit(Y.rps(baseRps * g.min_rps_ratio), `watchdog: under ${Math.round(g.min_rps_ratio * 100)}% of normal`);
+  if (g.max_error_rate) limit(Y.error_rate(g.max_error_rate), `watchdog: over ${pct(g.max_error_rate)}`);
+  if (g.max_p95_ms) limit(Y.p95_ms(g.max_p95_ms), `watchdog: over ${ms(g.max_p95_ms)}`);
+  const series = (key, cls, fill) => {
+    let path = "", prev = null;
+    for (const s of tl) {
+      const v = s[key];
+      if (v == null) { prev = null; continue; }
+      path += `${prev ? "L" : "M"}${X(s.elapsed).toFixed(1)} ${Y[key](v).toFixed(1)}`;
+      prev = s;
+    }
+    if (!path) return;
+    if (fill) {
+      const base = key === "rps" ? lanes[0] + laneH : lanes[1] + laneH;
+      const pts = tl.filter(s => s[key] != null);
+      svg.append(sv("path", {class: `${cls}-area`, d: `${path}L${X(pts[pts.length - 1].elapsed)} ${base}L${X(pts[0].elapsed)} ${base}Z`}));
+    }
+    svg.append(sv("path", {class: cls, d: path, "stroke-linejoin": "round"}));
+  };
+  series("rps", "sg-rps", true);
+  series("error_rate", "sg-err", true);
+  series("p95_ms", "sg-p95", false);
+  const marks = [];
+  for (const e of events) {
+    let label = null, cls = null;
+    if (e.kind === "inject") { label = "inject"; cls = "inject"; }
+    else if (e.kind === "abort") { label = "watchdog stop"; cls = "abort"; }
+    else if (e.kind === "revert") { label = "undo"; cls = "undo"; }
+    else if (e.kind === "recovery" && /recovered|NOT recovered/.test(e.message || "")) { label = /NOT/.test(e.message) ? "not recovered" : "recovered"; cls = "recovered"; }
+    else if (e.kind === "data-loss") { label = "data loss"; cls = "loss"; }
+    if (label && e.elapsed >= x0 - 1 && e.elapsed <= x1 + 1) marks.push({x: X(clamp(e.elapsed, x0, x1)), label, cls});
+  }
+  marks.sort((a, b) => a.x - b.x);
+  let lastX = -999, row = 0;
+  for (const m of marks) {
+    row = m.x - lastX < 96 ? (row + 1) % 2 : 0;
+    lastX = m.x;
+    svg.append(sv("line", {class: `sg-mark ${m.cls}`, x1: m.x, x2: m.x, y1: T + row * 13, y2: lanes[2] + laneH}));
+    const nearEnd = m.x > W - R - 110;
+    svg.append(sv("text", {class: `mk-${m.cls}`, x: nearEnd ? m.x - 4 : m.x + 4, y: T + 10 + row * 13, "text-anchor": nearEnd ? "end" : "start", text: m.label}));
+  }
+  const tickStep = (x1 - x0) / (W / 70) > 10 ? 30 : 10;
+  for (let t = Math.ceil(x0 / tickStep) * tickStep; t <= x1; t += tickStep) svg.append(sv("text", {x: X(t), y: H - 8, "text-anchor": "middle", text: `${Math.round(t)} s`}));
+  const cursor = sv("line", {class: "sg-cursor", x1: -10, x2: -10, y1: T - 6, y2: lanes[2] + laneH, opacity: 0});
+  const hit = sv("rect", {x: L, y: T - 6, width: W - L - R, height: laneH * 3 + gap * 2 + 12, fill: "transparent"});
+  svg.append(cursor, hit);
+  container.append(svg);
+  const readbox = el("div", {class: "readbox"});
+  container.append(readbox);
+  let scrub = null, out = null;
+  const show = sample => {
+    const px = X(sample.elapsed);
+    cursor.setAttribute("x1", px); cursor.setAttribute("x2", px); cursor.setAttribute("opacity", .7);
+    readbox.textContent = [`t = ${sample.elapsed.toFixed(1)} s · ${sample.phase === "fault" ? "under fault" : sample.phase}`,
+      `throughput  ${sample.rps.toFixed(1)} req/s`, `errors      ${pct(sample.error_rate)}`, `p95         ${ms(sample.p95_ms)}`,
+      sample.semantic_correctness ? `owner page  ${sample.semantic_correctness}` : null].filter(Boolean).join("\n");
+    readbox.style.display = "block";
+    const box = container.getBoundingClientRect(), scale = box.width / W;
+    readbox.style.left = `${Math.min(px * scale + 14, box.width - 210)}px`;
+    if (scrub) { scrub.value = tl.indexOf(sample); out.textContent = `${sample.elapsed.toFixed(0)} s`; }
+  };
+  const nearest = clientX => {
+    const box = svg.getBoundingClientRect();
+    const t = x0 + ((clientX - box.left) / box.width * W - L) / (W - L - R) * (x1 - x0);
+    return tl.reduce((a, b) => Math.abs(b.elapsed - t) < Math.abs(a.elapsed - t) ? b : a);
+  };
+  hit.addEventListener("mousemove", e => show(nearest(e.clientX)));
+  hit.addEventListener("mouseleave", () => { if (!S.replay) { cursor.setAttribute("opacity", 0); readbox.style.display = "none"; } });
+  if (!d.live) {
+    out = el("output", {text: `${tl[0].elapsed.toFixed(0)} s`});
+    scrub = el("input", {type: "range", id: "scrub", min: 0, max: tl.length - 1, step: 1, value: 0, "aria-label": "Scrub through the run",
+      oninput: e => show(tl[Number(e.target.value)])});
+    container.append(el("div", {class: "scrub"}, scrub, out));
+  }
+  container._show = show;
+  container._timeline = tl;
+}
+function playChart() {
+  const chart = $("#detail .chart");
+  if (!chart || !chart._timeline) return;
+  const tl = chart._timeline;
+  if (reduced()) { chart._show(tl[tl.length - 1]); return; }
+  const duration = 9000, start = performance.now();
+  cancelAnimationFrame(playChart.frame);
+  const step = now => {
+    const i = Math.min(tl.length - 1, Math.floor((now - start) / duration * tl.length));
+    chart._show(tl[i]);
+    if (i < tl.length - 1) playChart.frame = requestAnimationFrame(step);
+  };
+  playChart.frame = requestAnimationFrame(step);
+}
+
+/* ---------- replay on the bench ---------- */
+function startReplay(d) {
+  const tl = (d.timeline || []).filter(s => s.elapsed != null);
+  if (tl.length < 2) return;
+  const live = ((S.status || {}).traffic || {}).actions || {};
+  const total = ACTIONS.reduce((s, a) => s + ((live[a] || {}).rps || 0), 0);
+  const mix = Object.fromEntries(ACTIONS.map(a => [a, total ? ((live[a] || {}).rps || 0) / total : 1 / ACTIONS.length]));
+  const speed = Math.max(4, (tl[tl.length - 1].elapsed - tl[0].elapsed) / 24);   // about 24 s on screen
+  S.replay = {id: d.id, tl, fault: d.fault, mix, speed, started: performance.now(), sample: tl[0], hold: null};
+  B.particles = []; B.bursts = []; B.rings = [];
+  goTo("#bench");
+  renderChrome(); paintNodes();
+}
+function stepReplay(now) {
+  const r = S.replay;
+  const t = r.tl[0].elapsed + (now - r.started) / 1000 * r.speed;
+  let i = r.tl.findIndex(s => s.elapsed > t);
+  if (i < 0) { i = r.tl.length - 1; r.hold = r.hold || now; }
+  const sample = r.tl[Math.max(0, i - 1)];
+  if (sample !== r.sample) { r.sample = sample; paintNodes(); }
+  const bar = $("#replayBar");
+  bar.hidden = false;
+  const progress = (t - r.tl[0].elapsed) / (r.tl[r.tl.length - 1].elapsed - r.tl[0].elapsed);
+  if (!bar._built || bar._id !== r.id) {
+    bar.replaceChildren(el("span", {class: "tag blue", text: `replay ×${Math.round(r.speed)}`}),
+      el("span", {class: "what", text: `${NAMES[r.fault.kind]} on ${r.fault.target}`}), el("span", {class: "when"}),
+      el("progress", {max: 1, value: 0}), el("button", {type: "button", class: "btn", onclick: stopReplay, text: "Back to live"}));
+    bar._built = true; bar._id = r.id;
+  }
+  $(".when", bar).textContent = `${clock(r.id)} · t = ${Math.round(sample.elapsed)} s · ${sample.phase === "fault" ? "under fault" : sample.phase} · ${sample.rps.toFixed(1)} req/s · errors ${pct(sample.error_rate)}`;
+  $("progress", bar).value = clamp(progress, 0, 1);
+  const chart = $("#detail .chart");
+  if (chart && chart._show && S.detail && S.detail.id === r.id) chart._show(sample);
+  if (r.hold && now - r.hold > 2500) stopReplay();
+}
+function stopReplay() {
+  S.replay = null;
+  B.particles = []; B.bursts = []; B.rings = [];
+  const bar = $("#replayBar");
+  bar.hidden = true; bar._built = false;
+  renderChrome(); paintNodes();
+}
+
+/* ---------- safety interlocks ---------- */
+function renderInterlocks() {
+  const fault = activeFault();
+  const now = (S.status || {}).now || Date.now() / 1000;
+  const app = ((S.status || {}).containers || []).filter(c => c.target).length;
+  const other = ((S.status || {}).containers || []).filter(c => !c.target).length;
+  const watching = !!fault;
+  const planned = fault ? Math.max(0, Math.round(fault.expires_at - 30 - now)) : null;
+  const dead = fault ? Math.max(0, Math.round(fault.expires_at - now)) : null;
+  const items = [
+    ["Allowlist", `Only labelled app services can be attacked; monitoring and the load generator never can.`, `${app} allowed · ${other} protected`, false],
+    ["Limits", "Hard caps per attack: delay up to 5 s, loss up to 100%, CPU at least 0.05 core, spike up to 10×, one fault at a time.", "checked before start", false],
+    ["Watchdog", "Stops after 3 bad seconds in a row: over 25% errors, p95 over 2 s, traffic under 30% of normal, or owner pages losing visits.", watching ? "watching every second" : "armed", watching],
+    ["Timer", "Every fault is undone at its planned end, never later than 5 minutes.", watching ? `fault ends in ${planned} s` : "armed", watching],
+    ["Kill switch", "The emergency stop above, or python3 -m chaoslab stop in any terminal, undoes every fault at once.", "ready", false],
+    ["Dead-man's switch", "A detached process undoes the fault 30 s after its planned end, even if the controller crashed.", watching ? `fires in ${dead} s` : "armed", watching],
+  ];
+  const icon = active => sv("svg", {width: 16, height: 16, viewBox: "0 0 16 16", "aria-hidden": "true"},
+    active ? sv("circle", {cx: 8, cy: 8, r: 4, fill: "currentColor"}) : sv("path", {d: "M3 8.5l3 3 7-7", fill: "none", stroke: "currentColor", "stroke-width": 2.2}));
+  $("#interlocks").replaceChildren(...items.map(([name, text, state, active]) => el("div", {class: `lock${active ? " active" : ""}`},
+    el("div", {class: "pin"}, el("i", {}, icon(active))), el("h3", {text: name}), el("p", {text}), el("span", {class: "state", text: state}))));
+}
+
+/* ---------- polling and boot ---------- */
+async function pollStatus() {
+  try {
+    S.status = await getJSON("/api/status");
+    const t = S.status.traffic, h = S.history;
+    const push = (list, v) => { list.push(v); if (list.length > 60) list.shift(); };
+    push(h.rps, t.available ? t.rps : null);
+    push(h.err, t.available ? t.error_rate : null);
+    push(h.p95, t.available ? t.p95_ms : null);
+  } catch (err) { S.status = null; }
+  renderReadouts(); renderChrome(); renderLegend(); paintNodes(); renderInterlocks(); renderLaunchNote();
+}
+async function loadRuns() {
+  try {
+    const data = await getJSON("/api/runs");
+    S.runs = data.runs; S.totals = data.totals;
+    renderMatrix(); renderRunList();
+    if (!S.selected && S.runs.length) await selectRun(S.runs[0].id);
+  } catch (err) { /* keep the last view */ }
+}
+$("#estop").addEventListener("click", async () => {
+  const btn = $("#estop");
+  btn.classList.add("pressed");
+  setTimeout(() => btn.classList.remove("pressed"), 400);
+  try {
+    const result = await post("/api/stop");
+    toast(result.messages && result.messages.length ? result.messages.join(" · ") : "Nothing was active. The sandbox is restored.");
+  } catch (err) { toast(`Emergency stop failed: ${err.message}. In a terminal run: python3 -m chaoslab stop`); }
+  pollStatus(); pollLive();
+});
+document.addEventListener("keydown", e => {
+  if (e.target.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
+  const kinds = Object.keys(NAMES);
+  if (/^[1-6]$/.test(e.key)) { setMode(kinds[Number(e.key) - 1]); }
+  else if (e.key === "Escape" && S.replay) stopReplay();
+});
+let detailWidth = 0;
+new ResizeObserver(entries => {
+  const w = Math.round(entries[0].contentRect.width);
+  if (Math.abs(w - detailWidth) > 40 && S.detail && !S.replay) { detailWidth = w; renderDetail(); }
+}).observe($("#detail"));
+let resizeTimer = 0;
+new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (S.map) buildBench(); }, 80); }).observe($("#benchArea"));
+
+(async function boot() {
+  applyTheme(storedTheme());
+  renderAttackGrid(); renderInterlocks();
+  try { S.attacks = await getJSON("/api/attacks"); } catch (err) { S.attacks = []; }
+  renderAbout(); renderParams(); renderTargetLine(); renderLaunchNote();
+  try { S.map = await getJSON("/api/map"); } catch (err) { S.map = null; }
+  buildBench();
+  await pollStatus();
+  predict();
+  await loadRuns();
+  await pollLive();
+  requestAnimationFrame(frame);
+  setInterval(pollStatus, 1500);
+  setInterval(() => { if (S.live.run || (S.live.launch && S.live.launch.running) || S.launching) pollLive(); }, 1000);
+  setInterval(() => { if (!(S.live.run || (S.live.launch && S.live.launch.running))) pollLive(); }, 4000);
+  setInterval(loadRuns, 10000);
+})();
+</script>
+</body>
+</html>

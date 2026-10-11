@@ -18,6 +18,8 @@ from .settings import LOAD_TARGET_URL, LOCUST_URL, NETTOOLS_IMAGE
 class Fault:
     kind = ""
     summary = ""                                  # one line for menus and the planner
+    mechanism = ""                                # how the fault is applied
+    undo = ""                                     # how it is reverted
     limits: dict[str, tuple[float, float]] = {}   # parameter -> (min, max)
 
     def __init__(self, target: str, fault_id: str | None = None, **params):
@@ -56,6 +58,8 @@ class Fault:
 
 class ContainerKill(Fault):
     kind = "kill"
+    mechanism = 'docker kill sends SIGKILL to the container'
+    undo = 'docker start'
     summary = "Crash: SIGKILL the container, like an out-of-memory kill or a lost machine."
 
     def describe(self) -> str:
@@ -70,6 +74,8 @@ class ContainerKill(Fault):
 
 class ContainerPause(Fault):
     kind = "pause"
+    mechanism = "docker pause freezes the container's processes (cgroup freezer)"
+    undo = 'docker unpause'
     summary = ("Hang: freeze every process in the container. Connections stay open but "
                "nothing answers, like a stuck thread pool or a long garbage-collection pause.")
 
@@ -131,6 +137,8 @@ class NetworkFault(Fault):
 
 class NetworkDelay(NetworkFault):
     kind = "delay"
+    mechanism = "tc netem delay inside the container's network namespace, from a helper container"
+    undo = 'remove the netem rule; the helper also removes it when its timer ends'
     summary = "Slow network: add latency to everything the container sends."
     limits = {"delay_ms": (1, 5000), "jitter_ms": (0, 2000), "expire_after_s": (1, 600)}
 
@@ -149,6 +157,8 @@ class NetworkDelay(NetworkFault):
 
 class PacketLoss(NetworkFault):
     kind = "loss"
+    mechanism = "tc netem loss inside the container's network namespace, from a helper container"
+    undo = 'remove the netem rule; the helper also removes it when its timer ends'
     summary = ("Lossy network: drop a share of the packets the container sends. "
                "100% cuts it off completely (a failed or unreachable dependency).")
     limits = {"loss_pct": (1, 100), "expire_after_s": (1, 600)}
@@ -168,6 +178,8 @@ class PacketLoss(NetworkFault):
 
 class CpuThrottle(Fault):
     kind = "cpu"
+    mechanism = "docker update --cpus caps the container's CPU quota"
+    undo = 'restore the original CPU limit'
     summary = ("Starved: cap the container's CPU, like an overloaded host or a noisy "
                "neighbour. Also the closest stand-in for an overloaded embedded database.")
     limits = {"cpus": (0.05, 4)}
@@ -195,6 +207,8 @@ class CpuThrottle(Fault):
 
 class TrafficSpike(Fault):
     kind = "spike"
+    mechanism = 'the Locust web API raises the number of simulated users'
+    undo = 'restore the original user count'
     summary = "Sudden traffic spike: multiply the number of simulated users hitting the entry point."
     limits = {"multiplier": (1.5, 10)}
 

@@ -6,6 +6,7 @@ This file records meaningful, user-facing changes to the project. Detailed imple
 
 ### Added
 
+- Added the Resilience Test Bench (`chaoslab bench`), a live operator console: traffic moving per user action on the dependency map, launching one guarded experiment at a time, per-action impact predictions, a test matrix of every service against every fault, a live and replayable second-by-second recorder, the safety interlocks and an emergency stop.
 - Added a visual README architecture tour of dependency discovery, the guarded experiment, the PetClinic request path, and read-only reporting.
 - Published a saved dependency map with a browser walkthrough and screenshots that connect service topology, user routes, failure predictions, and evidence freshness.
 - Added evidence-backed impact rules for freezes, slow and lossy networks and the Gateway's 10 s timeout, plus restart data loss for services with in-memory databases, each labelled measured or inferred and checked against experiment results.
@@ -25,6 +26,7 @@ This file records meaningful, user-facing changes to the project. Detailed imple
 
 ### Changed
 
+- Experiments stream each second's measurements to `runs/<run>/timeline.jsonl`, so a run can be watched while it happens.
 - The README describes the owner 6 fixture, the canary visit, data-loss reporting and the comparison window.
 - Integrated the Spring PetClinic microservices source tree into the main repository for unified version control.
 - Made the GenAI service optional so PetClinic runs without OpenAI or Azure credentials.
@@ -44,3 +46,5 @@ This file records meaningful, user-facing changes to the project. Detailed imple
 ### Removed
 
 ### Security
+
+- The bench's launch and stop buttons accept requests only from its own page on this machine, and launches stay inside the same allowlist and fault limits as the command line.

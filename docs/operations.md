@@ -115,6 +115,23 @@ python3.11 -m chaoslab dashboard --demo   # deterministic recorded example
 
 Open `reports/dashboard.html` in a browser. It is a standalone export with no external assets or fault controls. It displays the run's captured prediction even when the current dependency map is newer, and labels the mismatch. The freshness column is evaluated when the page opens. `chaoslab map` and completed experiments refresh the export automatically. The committed [demo JSON](../demo/visits-failure.json) is a curated recording, not a synthetic success case.
 
+## Live test bench
+
+```bash
+python3.11 -m chaoslab bench      # operator console on http://127.0.0.1:8090 (or: make bench)
+```
+
+The bench is the live counterpart of the read-only dashboard. It is an operator tool like the CLI, served on this machine only:
+
+- **Live test bench**: the dependency map with one moving dot per request, coloured by user action. Each fault looks different: a crashed service bursts the calls that reach it, a frozen one queues them until they time out, delay slows them, loss drops them, and errors travel back to the users in red.
+- **Arm and launch**: pick a fault (keys 1 to 6, or drag it onto a service), a target, its strength and length, then hold the launch button for one second. It starts the same guarded `chaoslab run`, one experiment at a time, inside the same allowlist and parameter limits.
+- **What users would feel**: the impact prediction for the armed fault, per user action, before anything is injected, plus what a restart would lose.
+- **Test matrix**: every service against every fault with the latest verdict (held, tripped, data lost, no recovery, refused) and totals such as pairs tested, weaknesses found and prediction accuracy.
+- **Recorder**: every run in `runs/`, drawn second by second while it happens and afterwards, with watchdog limits, the prediction-versus-observation protocol and the event log. **Replay on the bench** re-enacts a past run on the live map.
+- **Safety**: the six interlocks with live countdowns, and an emergency stop that undoes every fault.
+
+Its buttons accept requests only from the page itself on this machine: they require a custom header and a local `Host`, so other websites cannot trigger them. Refused launches show the reason, for example a system that is not in a steady state.
+
 ## Chaos experiments
 
 ```bash

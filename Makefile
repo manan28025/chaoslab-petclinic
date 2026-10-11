@@ -4,7 +4,7 @@ PYTHON ?= python3.11
 # Everything except the GenAI chatbot, which needs an OpenAI key.
 MODULES := !spring-petclinic-genai-service
 
-.PHONY: build up down status targets kill-switch dashboard dashboard-demo
+.PHONY: build up down status targets kill-switch dashboard dashboard-demo bench
 
 build: ## Build the PetClinic images from this repo's source for this machine's CPU, plus the chaos helper image
 	cd $(APP_DIR) && ./mvnw -q clean install -P buildDocker -DskipTests \
@@ -32,3 +32,6 @@ dashboard: ## Refresh the read-only dashboard from the newest finished local run
 
 dashboard-demo: ## Refresh the dashboard from the committed recorded Visits example
 	$(PYTHON) -m chaoslab dashboard --demo
+
+bench: ## Serve the live Resilience Test Bench on http://127.0.0.1:8090
+	$(PYTHON) -m chaoslab bench
