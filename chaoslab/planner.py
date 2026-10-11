@@ -47,6 +47,8 @@ PARAMS = {
 # How much a first run of each fault type usually teaches; breaks near-ties.
 INFORMATIVENESS = {"kill": 0.4, "pause": 0.35, "delay": 0.3, "loss": 0.3, "cpu": 0.15, "spike": 0.2}
 OUTCOME_WEIGHT = {"unavailable": 1.0, "degraded": 0.7, "uncertain": 0.5, "preserved": 0.0}
+LABELS = {"kill": "Crash", "pause": "Freeze", "delay": "Slow network", "loss": "Lossy network",
+          "cpu": "CPU starvation", "spike": "Traffic spike"}
 TYPICAL_RECOVERY_S = {"kill": 30, "pause": 20, "delay": 10, "loss": 10, "cpu": 10, "spike": 10}
 
 SYSTEM = """You are the planning agent of ChaosLab, a chaos-engineering tool for a local Spring PetClinic
@@ -205,7 +207,7 @@ def default_hypothesis(candidate: dict) -> dict:
              if (names := [f for f, x in predicted.items() if x == o])]
     if unsure := [f for f, x in predicted.items() if x == "uncertain"]:
         parts.append(f"{', '.join(unsure)} uncertain, expected degraded")
-    statement = (f"{FAULTS[candidate['kind']].summary.split(':')[0]} on {candidate['target']}: "
+    statement = (f"{LABELS[candidate['kind']]} on {candidate['target']}: "
                  f"{'; '.join(parts) or 'no user action affected'}; at most {max_error:.0%} of requests fail "
                  f"and users recover within {recovery:.0f} s after the fault is undone")
     return {"statement": statement, "expected": expected, "expected_max_error_rate": max_error,
@@ -369,7 +371,7 @@ def _finish(accepted: dict, top: list[dict], all_candidates: list[dict], snapsho
         heavy.append("heavy settings")
     reasons = [r for r in (c["approval_reason"], *heavy) if r]
     rationale = accepted["rationale"] or (
-        f"{c['kind']} on {c['target']} ranks #{c['rank']}: {'; '.join(c['reasons'])}")
+        f"{LABELS[c['kind']]} on {c['target']} ranks #{c['rank']}: {'; '.join(c['reasons'])}")
     return {
         "id": _plan_id(c), "created_at": time.time(), "snapshot_id": snapshot.get("snapshot_id"),
         "planned_by": planned_by, "model": model, "kind": c["kind"], "target": c["target"],

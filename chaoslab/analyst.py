@@ -145,7 +145,7 @@ def findings(result: dict, snapshot: dict | None = None) -> list[dict]:
     contradicted = {a: c for a, c in (result.get("prediction_comparison") or {}).items() if c.get("match") == "contradicted"}
     if contradicted:
         out.append(_finding("prediction_wrong", "low", "The dependency model predicted this wrongly",
-                            "; ".join(f"{a}: predicted {c['predicted']}, observed {c['observed']}"
+                            "; ".join(f"{a}: predicted {c.get('predicted', '?')}, observed {c.get('observed', '?')}"
                                       for a, c in contradicted.items())))
     if not out:
         out.append(_finding("held", "info", "Users were unaffected",

@@ -51,6 +51,9 @@ class BenchTest(unittest.TestCase):
         write_run(self.runs, "20261010-164228-kill-visits-service")
         detail = bench.run_detail("20261010-164228-kill-visits-service")
         self.assertEqual(detail["events"][0]["kind"], "inject")
+        self.assertEqual(detail["analysis"]["run_id"], "20261010-164228-kill-visits-service")
+        self.assertTrue((self.runs / "20261010-164228-kill-visits-service" / "analysis.json").exists(),
+                        "the analysis is saved next to the run it was read from")
         for bad in ("../secrets", "20261010-164228-kill-visits-service/../../x", "active-faults.json", ""):
             self.assertIsNone(bench.run_detail(bad))
 

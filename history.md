@@ -6,6 +6,7 @@ This file records meaningful, user-facing changes to the project. Detailed imple
 
 ### Added
 
+- The bench's console has an AI planner mode: ask for a plan, see the code's ranked candidates, the pick, its rationale and hypothesis, approve risky plans and launch them; the recorder shows each run's findings, risk score, hypothesis check and fixes, and the findings section shows the resilience score, top weaknesses and the A-F scorecard.
 - Added an AI planner (`chaoslab plan`, `chaoslab auto`) that ranks every allowed fault in code, lets an optional language model investigate with read-only tools, pick from the top five and write a falsifiable hypothesis, validates and clamps its plan with feedback for corrections, falls back to the top-ranked plan without a model, and asks for approval before plans that could lose data or take down start-up dependencies.
 - Added an analyst (`chaoslab analyze`, `chaoslab report`) that turns every run into findings, a deterministic 0-10 risk score, a hypothesis check and PetClinic-specific fixes with verification commands, and merges all runs into ranked weaknesses and an A-F scorecard; a language model may only write the explanations and two fixes labelled unverified.
 - Added the Resilience Test Bench (`chaoslab bench`), a live operator console: traffic moving per user action on the dependency map, launching one guarded experiment at a time, per-action impact predictions, a test matrix of every service against every fault, a live and replayable second-by-second recorder, the safety interlocks and an emergency stop.

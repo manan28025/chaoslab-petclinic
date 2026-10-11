@@ -23,9 +23,10 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
-from . import blast_radius, depmap, safety
+from . import analyst, blast_radius, depmap, planner, safety
 from .docker import docker, targets
 from .faults import FAULTS
+from .llm import from_env
 from .settings import COMPOSE_PROJECT, LOCUST_URL, ROOT, RUNS_DIR
 
 PAGE = Path(__file__).with_name("bench.html")
@@ -82,9 +83,15 @@ def _traffic() -> dict:
             .get("response_time_percentile_0.95"), "actions": actions}
 
 
+def model_state() -> dict:
+    llm = from_env()
+    available = llm.available()
+    return {"available": available, "model": llm.describe(), "reason": "" if available else llm.last_error}
+
+
 def status() -> dict:
     return {"containers": _containers(), "faults": safety.active_faults(), "traffic": _traffic(),
-            "now": time.time()}
+            "now": time.time(), "model": model_state()}
 
 
 def attacks() -> list[dict]:
@@ -132,7 +139,7 @@ def runs() -> dict:
             summaries.append(_summary(run))
         except (OSError, ValueError, KeyError):
             continue  # a run still being written, or an unreadable one
-    done = [s for s in summaries if not s["pending"]]
+    done = [s for s in summaries if not s["pending"] and s["outcome"] != "refused"]   # refused never ran
     recoveries = [s["recovery_s"] for s in done if s["recovery_s"] is not None]
     judged = sum(s["predictions"]["matched"] + s["predictions"]["contradicted"] for s in done)
     return {"runs": summaries, "totals": {
@@ -166,7 +173,59 @@ def run_detail(run_id: str) -> dict | None:
         return None
     detail = json.loads((run / "result.json").read_text())
     detail["events"] = _events(run)
+    detail["analysis"] = _analysis(run, detail)
     return detail
+
+
+def _analysis(run: Path, result: dict) -> dict | None:
+    """The saved analysis, or one computed by code now (no model) for runs that predate the analyst."""
+    if result.get("recovery_pending"):
+        return None
+    saved = run / "analysis.json"
+    if saved.exists():
+        try:
+            return json.loads(saved.read_text())
+        except ValueError:
+            pass
+    result.setdefault("id", run.name)
+    try:
+        analysis = analyst.analyze(result, _snapshot())
+    except (KeyError, TypeError, ValueError) as err:   # an unexpected record must not break the page
+        return {"error": f"could not analyse this run: {type(err).__name__}: {err}"}
+    analyst.save(analysis, run.parent)   # next to the run it was read from
+    return analysis
+
+
+def _snapshot() -> dict | None:
+    try:
+        return depmap.load()
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def report() -> dict:
+    snapshot = _snapshot()
+    if snapshot is None:
+        raise FileNotFoundError("no dependency map")
+    analyses = analyst.load_all(snapshot=snapshot)
+    services = [n["id"] for n in snapshot["nodes"] if n.get("kind") == "container" and n.get("active") is not False]
+    return analyst.report(analyses, services, list(FAULTS), snapshot["entry_point"])
+
+
+def make_plan(request: dict) -> dict:
+    snapshot = _snapshot()
+    if snapshot is None:
+        raise LaunchError("no dependency map yet: run `python3 -m chaoslab map`")
+    llm = from_env()
+    use_ai = bool(request.get("use_ai", True)) and llm.available()
+    record = planner.plan(snapshot, set(targets()), llm=llm if use_ai else None)
+    if record is None:
+        raise LaunchError("nothing on the allowlist can be planned")
+    if not use_ai:
+        record["notes"].insert(0, "rules only: " + ("you chose not to ask the language model" if llm.available()
+                                                    else f"no language model ({llm.last_error})"))
+    planner.save(record)
+    return record
 
 
 def _live_run() -> Path | None:
@@ -229,7 +288,10 @@ def _busy() -> str | None:
 
 
 def launch(request: dict) -> dict:
-    """Start one guarded experiment, exactly as `python3 -m chaoslab run` would."""
+    """Start one guarded experiment, exactly as `python3 -m chaoslab run` would, or a saved plan
+    exactly as `python3 -m chaoslab execute` would."""
+    if "plan_id" in request:
+        return _launch_plan(str(request["plan_id"]), request.get("approved") is True)
     kind, target = request.get("kind"), request.get("target")
     if kind not in FAULTS:
         raise LaunchError(f"unknown attack {kind!r}; choose one of {', '.join(FAULTS)}")
@@ -256,6 +318,24 @@ def launch(request: dict) -> dict:
     command = [sys.executable, "-m", "chaoslab", "run", kind, target, "--duration", str(duration)]
     for name, value in sorted(params.items()):
         command += [CLI_FLAGS[name], str(value)]
+    return _start(command, {"kind": kind, "target": target, "duration_s": duration, "params": params})
+
+
+def _launch_plan(plan_id: str, approved: bool) -> dict:
+    try:
+        record = planner.load(plan_id)
+    except ValueError as err:
+        raise LaunchError(str(err)) from err
+    if record["target"] not in targets():
+        raise LaunchError(f"{record['target']!r} is no longer on the allowlist")
+    if record["requires_approval"] and not approved:
+        raise LaunchError(f"this plan needs your approval first: {record['approval_reason']}")
+    command = [sys.executable, "-m", "chaoslab", "execute", plan_id] + (["--approve-risky"] if approved else [])
+    return _start(command, {"kind": record["kind"], "target": record["target"], "duration_s": record["duration_s"],
+                            "params": record["params"], "plan_id": plan_id})
+
+
+def _start(command: list[str], request: dict) -> dict:
     with _launch_lock:
         reason = _busy()
         if reason:
@@ -267,8 +347,7 @@ def launch(request: dict) -> dict:
             proc = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=log,
                                     stderr=subprocess.STDOUT, start_new_session=True)
         _launched.clear()
-        _launched.update(proc=proc, started=time.time(),
-                         request={"kind": kind, "target": target, "duration_s": duration, "params": params})
+        _launched.update(proc=proc, started=time.time(), request=request)
     shown = ["python3", *command[1:]]
     return {"started": True, "pid": proc.pid, "command": " ".join(shown)}
 
@@ -309,6 +388,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(runs())
             elif url.path == "/api/live":
                 self._json(live())
+            elif url.path == "/api/report":
+                self._json(report())
             elif url.path.startswith("/api/runs/"):
                 detail = run_detail(url.path.removeprefix("/api/runs/"))
                 if detail is None:
@@ -332,7 +413,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:
         path = urlparse(self.path).path
-        if path not in ("/api/stop", "/api/launch") or not self._from_this_machine():
+        if path not in ("/api/stop", "/api/launch", "/api/plan") or not self._from_this_machine():
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
         if path == "/api/stop":
@@ -347,7 +428,7 @@ class Handler(BaseHTTPRequestHandler):
             request = json.loads(self.rfile.read(length))
             if not isinstance(request, dict):
                 raise LaunchError("send the attack as a JSON object")
-            self._json(launch(request))
+            self._json(launch(request) if path == "/api/launch" else make_plan(request))
         except Busy as err:
             self._json({"error": str(err)}, HTTPStatus.CONFLICT)
         except (LaunchError, ValueError) as err:
