@@ -131,10 +131,16 @@ def findings(result: dict, snapshot: dict | None = None) -> list[dict]:
                             "more than 30 s from undoing the fault until users had 10 s of normal service"))
 
     node = next((n for n in (snapshot or {}).get("nodes", []) if n.get("id") == target), None)
-    if kind == "kill" and node is not None and node.get("auto_restart") is False:
+    if kind in ("kill", "stop") and node is not None and node.get("auto_restart") is False:
         out.append(_finding("no_self_healing", "high", f"{target} only came back because ChaosLab restarted it",
                             "the container has no restart policy and runs a single instance: without the "
                             "experiment's undo step it would have stayed down"))
+
+    relapses = result.get("relapses") or []
+    if relapses:
+        out.append(_finding("relapse", "medium", f"Service relapsed {len(relapses)} time{'s' if len(relapses) != 1 else ''} "
+                            "after looking recovered", f"users were hurt again at {', '.join(f'{t:.0f} s' for t in relapses)} "
+                            "after a period of normal service; a quick recovery check would have declared it healthy"))
 
     collateral = result.get("collateral_actions") or []
     if collateral:
@@ -194,7 +200,7 @@ GATEWAY_ROUTES = "spring-petclinic-api-gateway/src/main/resources/application.ym
 ADDRESSES = {
     "persistent-database": ["data_loss"], "visible-fallbacks": ["silent_degradation"],
     "fail-fast": ["hang_not_fail", "throughput_collapse"], "separate-circuit-breakers": ["collateral_damage"],
-    "self-healing": ["no_self_healing"], "faster-recovery": ["no_recovery", "slow_recovery"],
+    "self-healing": ["no_self_healing"], "faster-recovery": ["no_recovery", "slow_recovery", "relapse"],
     "rate-limit": ["user_errors"], "update-model": ["prediction_wrong"],
 }
 
@@ -253,8 +259,8 @@ def fixes(result: dict, found: list[dict]) -> list[dict]:
             ["Add `restart: unless-stopped` to the service in Compose (an orchestrator's liveness probe in production)",
              "Run two instances behind Eureka so the Gateway's load balancer keeps serving while one restarts"],
             f"{rerun}  # with the undo step removed, expect the service back on its own", "low", 0.8))
-    if "no_recovery" in codes or "slow_recovery" in codes:
-        f = codes.get("no_recovery") or codes["slow_recovery"]
+    if "no_recovery" in codes or "slow_recovery" in codes or "relapse" in codes:
+        f = codes.get("no_recovery") or codes.get("slow_recovery") or codes["relapse"]
         out.append(_fix(
             "faster-recovery", "Shorten recovery after the fault ends",
             f["evidence"],
@@ -361,6 +367,7 @@ def analyze(result: dict, snapshot: dict | None = None, llm: LLM | None = None) 
             fix_list += written.pop("extra_fixes")
             prose, by = written, "ai+rules"
     return {"run_id": result.get("id"), "fault": result.get("fault"), "verdict": verdict(result),
+            "fix": (result.get("plan") or {}).get("fix"),   # ran with a fix applied: not the system as it is
             "risk": score, "findings": found, "fixes": fix_list,
             "observed": observed_outcomes(result) if result.get("outcome") != "refused" else {},
             "hypothesis": hypothesis_check(result, result.get("plan")), "prose": prose,
@@ -482,14 +489,23 @@ def load_all(runs_dir: Path = RUNS_DIR, snapshot: dict | None = None, llm: LLM |
     return out
 
 
-def report(analyses: list[dict], services: list[str], fault_kinds: list[str], entry_point: str) -> dict:
-    card = scorecard(analyses, services)
-    real = [a for a in analyses if a["verdict"] not in ("refused", "recovering")]
+def report(analyses: list[dict], services: list[str], fault_kinds: list[str], entry_point: str,
+           verifications: list[dict] | None = None) -> dict:
+    current = [a for a in analyses if not a.get("fix")]   # fix-verification runs describe a different system
+    card = scorecard(current, services)
+    real = [a for a in current if a["verdict"] not in ("refused", "recovering")]
     pairs = {(a["fault"]["target"], a["fault"]["kind"]) for a in real}
     possible = len(services) * (len(fault_kinds) - 1) + (1 if "spike" in fault_kinds else 0)
     held = [a["hypothesis"]["held"] for a in real if a.get("hypothesis")]
-    return {"scorecard": card, "weaknesses": weaknesses(real), "experiments": len(real),
-            "refused": len(analyses) - len(real), "coverage": {"tested_pairs": len(pairs), "possible_pairs": possible},
+    found = weaknesses(real)
+    verified = [v for v in verifications or [] if v.get("after")]
+    for w in found:   # attach the newest verification of a fix aimed at this weakness on this service
+        for v in reversed(verified):
+            if v["experiment"]["target"] == w["service"] and w["code"] in v["fix"]["addresses"]:
+                w["verification"] = {"id": v["id"], "verified": v["verified"], "summary": v["summary"]}
+                break
+    return {"scorecard": card, "weaknesses": found, "experiments": len(real), "verifications": verified,
+            "refused": len(current) - len(real), "coverage": {"tested_pairs": len(pairs), "possible_pairs": possible},
             "hypotheses": {"held": sum(held), "checked": len(held)},
             "risk_levels": {lvl: sum(1 for a in real if (a["risk"] or {}).get("level") == lvl)
                             for lvl in ("critical", "high", "medium", "low")}}
@@ -507,6 +523,12 @@ def report_markdown(r: dict) -> str:
     for i, w in enumerate(r["weaknesses"], 1):
         top = w["fixes"][0]["title"] if w["fixes"] else "–"
         lines.append(f"| {i} | {w['severity']} | {w['title']} | `{w['service']}` | {len(w['runs'])} | {w['risk']} | {top} |")
+    if r.get("verifications"):
+        lines += ["", "## Fixes applied and verified", "",
+                  "Each fix was applied to the sandbox, the experiment that exposed the weakness was run again, "
+                  "and the fix was reverted afterwards.", ""]
+        for v in r["verifications"]:
+            lines.append(f"- **{v['fix']['title']}** ({v['id']}): {v['summary']}")
     lines += ["", "## Scorecard (worst first)", "", "| Service | Score | Grade | Runs | Faults tested | Weakest result |",
               "|---|---|---|---|---|---|"]
     for row in card["services"]:

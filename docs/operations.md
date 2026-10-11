@@ -143,6 +143,8 @@ python3.11 -m chaoslab run delay visits-service --delay-ms 600   # slow network
 python3.11 -m chaoslab run loss visits-service --loss-pct 30     # lossy network (100 = cut off)
 python3.11 -m chaoslab run cpu customers-service --cpus 0.1      # CPU starvation
 python3.11 -m chaoslab run spike api-gateway --multiplier 5      # traffic spike
+python3.11 -m chaoslab run stop vets-service                     # graceful stop (SIGTERM, deregisters first)
+python3.11 -m chaoslab run partition visits-service              # network partition (running, unreachable)
 python3.11 -m chaoslab status                                    # active faults
 python3.11 -m chaoslab stop                                      # kill switch (or: make kill-switch)
 ```
@@ -189,4 +191,17 @@ export CHAOSLAB_LLM=off                            # rules only, same as --no-ai
 ```
 
 Any OpenAI-compatible endpoint works, including a local model such as `http://localhost:11434/v1` (Ollama), which needs no key.
+
+## Fix and verify
+
+```bash
+python3.11 -m chaoslab fixes                           # fixes that can be applied and verified
+python3.11 -m chaoslab verify persistent-database      # apply, rerun the experiment, compare, revert
+python3.11 -m chaoslab verify persistent-database --keep   # leave the fix applied
+python3.11 -m chaoslab revert persistent-database      # undo a kept fix
+```
+
+A recommendation is only a claim until it is tested. `verify` applies a fix to the sandbox, reruns the experiment that exposed the weakness, compares the run without the fix against the run with it, and reverts the fix so the sandbox is back to its tested state. The comparison (verdict, risk, visits lost, canary, peak errors, p95, recovery, and which findings were resolved, remain or are new) goes to `runs/verifications/<id>.md`, and the resilience report and the bench show it next to the weakness.
+
+A fix is a Docker Compose override in `fixes/`, plain configuration that changes only the services it names. `persistent-database` moves `customers-service` and `visits-service` from their in-memory HSQLDB to PetClinic's own `mysql` profile on one MySQL 8.4 database (visits' table references customers' `pets`, so they share it). Fixes are applied only when no fault and no experiment is active; the "before" run is the newest run of the same experiment without the fix, or a fresh one with `--fresh-before`.
 

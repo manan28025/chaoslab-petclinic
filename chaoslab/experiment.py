@@ -19,6 +19,7 @@ from .settings import ROOT, RUNS_DIR
 
 TICK_S = 1.0
 RECOVERY_HOLD_S = 10          # healthy this many seconds in a row counts as recovered
+SOAK_S = 15                   # ...and must then stay healthy this much longer: a relapse resets the wait
 MAX_BASELINE_ERROR = 0.05     # refuse to start unless the system is this healthy
 
 
@@ -127,7 +128,7 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
         result["prediction"] = prediction
         if plan is not None:   # the planner's choice, rationale and hypothesis, for the analyst
             result["plan"] = {k: plan.get(k) for k in ("id", "planned_by", "model", "rationale", "hypothesis",
-                                                       "requires_approval", "approval_reason", "approved")}
+                                                       "requires_approval", "approval_reason", "approved", "fix")}
         result["semantic_observations"] = semantic_observations
         result["prediction_comparison"] = semantic_probe.compare(
             prediction, semantic_observations,
@@ -253,11 +254,12 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
 
     # 4. Recovery: how long until users see normal service again?
     recovered_at = None
+    relapses: list[float] = []
     if outcome != "interrupted":
         limit_err = max((base_err or 0) + 0.02, 0.02)
         base_p95 = baseline["p95_ms"]
         limit_p95 = max(2 * base_p95, base_p95 + 100)
-        log("recovery", f"waiting for {RECOVERY_HOLD_S}s of normal service "
+        log("recovery", f"waiting for {RECOVERY_HOLD_S}s of normal service, then {SOAK_S}s without a relapse "
                         f"(errors <= {limit_err:.0%}, p95 <= {limit_p95:.0f}ms), max {recovery_timeout_s}s")
         healthy_since = None
         give_up = time.monotonic() + recovery_timeout_s
@@ -269,13 +271,22 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
                   and sample.error_rate is not None and sample.error_rate <= limit_err
                   and (sample.p95_ms is None or sample.p95_ms <= limit_p95))
             if not ok:
+                if recovered_at is not None:   # looked recovered, then got worse again
+                    relapses.append(sample.elapsed)
+                    log("relapse", f"users were hurt again {sample.elapsed - recovered_at:.1f}s after service "
+                                   f"looked normal; waiting again")
+                    recovered_at = None
                 healthy_since = None
             elif healthy_since is None:
                 healthy_since = sample.elapsed
             log.show(_fmt(sample) + ("  ok" if ok else ""))
-            if healthy_since is not None and sample.elapsed - healthy_since >= RECOVERY_HOLD_S:
+            if recovered_at is None and healthy_since is not None and sample.elapsed - healthy_since >= RECOVERY_HOLD_S:
                 recovered_at = healthy_since
+                log("soak", f"normal for {RECOVERY_HOLD_S}s; watching {SOAK_S}s more for a relapse")
+            if recovered_at is not None and sample.elapsed - recovered_at >= RECOVERY_HOLD_S + SOAK_S:
                 break
+        if recovered_at is not None and timeline[-1].elapsed - recovered_at < RECOVERY_HOLD_S + SOAK_S:
+            recovered_at = None   # the recovery window ended during the soak: not confirmed
         log("recovery", f"recovered {recovered_at - t_revert:.1f}s after revert"
                         if recovered_at else f"NOT recovered within {recovery_timeout_s}s")
 
@@ -324,6 +335,7 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
         "peak_error_rate": max((s.error_rate for s in fault_samples if s.error_rate is not None), default=None),
         "peak_p95_ms": max((s.p95_ms for s in fault_samples if s.p95_ms is not None), default=None),
         "recovered": recovered_at is not None,
+        "relapses": relapses,
         "recovery_s": round(recovered_at - t_revert, 1) if recovered_at else None,
         "semantic_recovery": final_probe,
         "data_loss": data_loss,

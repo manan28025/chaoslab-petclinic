@@ -90,6 +90,57 @@ class ContainerPause(Fault):
             docker("unpause", self.target)
 
 
+class GracefulStop(Fault):
+    kind = "stop"
+    mechanism = "docker stop sends SIGTERM, then SIGKILL after 10 s; Spring shuts down and leaves Eureka"
+    undo = "docker start"
+    summary = ("Graceful stop: SIGTERM the container, like a rolling deploy or a drained node. "
+               "Unlike a crash, the service can deregister before it goes.")
+
+    def describe(self) -> str:
+        return f"stop {self.target} gracefully (SIGTERM)"
+
+    def inject(self) -> None:
+        docker("stop", "--time", "10", self.target, timeout=40)
+
+    def revert(self) -> None:
+        docker("start", self.target)  # no-op if it is already running
+
+
+class NetworkPartition(Fault):
+    kind = "partition"
+    mechanism = "docker network disconnect takes the container off its networks; its processes keep running"
+    undo = "docker network connect with the original aliases"
+    summary = ("Partition: cut the container off the network while it keeps running, like a failed "
+               "switch or a wrong firewall rule. Callers cannot reach it at all.")
+
+    def __init__(self, target: str, fault_id: str | None = None, networks: dict | None = None):
+        super().__init__(target, fault_id, networks=networks)
+
+    def describe(self) -> str:
+        return f"cut {self.target} off the network (partition)"
+
+    def _attached(self) -> dict[str, list[str]]:
+        raw = docker("inspect", "--format", "{{json .NetworkSettings.Networks}}", self.target)
+        container_id = docker("inspect", "--format", "{{.Id}}", self.target)[:12]
+        return {name: sorted({a for a in (net.get("Aliases") or []) if a and a != container_id})
+                for name, net in json.loads(raw).items()}
+
+    def prepare(self) -> None:
+        self.params["networks"] = self._attached()   # recorded first, so any undo can restore them
+
+    def inject(self) -> None:
+        for network in self.params["networks"]:
+            docker("network", "disconnect", network, self.target)
+
+    def revert(self) -> None:
+        attached = self._attached()
+        for network, aliases in (self.params.get("networks") or {}).items():
+            if network not in attached:
+                args = [arg for alias in aliases for arg in ("--alias", alias)]
+                docker("network", "connect", *args, network, self.target)
+
+
 class NetworkFault(Fault):
     """Base for faults applied as a netem rule inside the target's network.
 
@@ -251,4 +302,5 @@ class TrafficSpike(Fault):
 
 
 FAULTS = {fault.kind: fault for fault in
-          (ContainerKill, ContainerPause, NetworkDelay, PacketLoss, CpuThrottle, TrafficSpike)}
+          (ContainerKill, ContainerPause, NetworkDelay, PacketLoss, CpuThrottle, TrafficSpike,
+           GracefulStop, NetworkPartition)}

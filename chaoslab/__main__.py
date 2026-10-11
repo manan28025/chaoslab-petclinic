@@ -159,7 +159,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="chaoslab",
                                      description="Safe, controlled failure injection for the local sandbox.")
     sub = parser.add_subparsers(dest="cmd", required=True,
-                                metavar="{map,dashboard,bench,impact,faults,targets,status,stop,run,plan,execute,auto,analyze,report}")
+                                metavar="{doctor,map,dashboard,bench,impact,faults,targets,status,stop,run,plan,execute,auto,analyze,report,fixes,verify,revert}")
+    sub.add_parser("doctor", help="check that this machine is ready for experiments, and say how to fix what is not")
     sub.add_parser("map", help="discover the dependency map and write it to reports/")
     dashboard_command = sub.add_parser("dashboard", help="build a standalone read-only dashboard")
     dashboard_command.add_argument("--demo", action="store_true",
@@ -215,6 +216,14 @@ def main(argv: list[str] | None = None) -> int:
     report_command = sub.add_parser("report", help="ranked weaknesses, fixes and the resilience scorecard")
     report_command.add_argument("--refresh", action="store_true", help="recompute every analysis first")
     report_command.add_argument("--no-ai", action="store_true", help="templated text for new analyses")
+    sub.add_parser("fixes", help="fixes that can be applied to the sandbox and verified")
+    verify = sub.add_parser("verify", help="apply a fix, rerun the experiment that exposed the weakness, compare, revert")
+    verify.add_argument("fix_id")
+    verify.add_argument("--keep", action="store_true", help="leave the fix applied afterwards")
+    verify.add_argument("--fresh-before", action="store_true", help="rerun the experiment without the fix first")
+    verify.add_argument("--duration", type=int, default=30)
+    revert_command = sub.add_parser("revert", help="undo a fix kept with verify --keep")
+    revert_command.add_argument("fix_id")
     expire = sub.add_parser("_expire")  # internal: the dead-man's switch process
     expire.add_argument("fault_id")
     expire.add_argument("at", type=float)
@@ -354,6 +363,40 @@ def main(argv: list[str] | None = None) -> int:
                       f"{(str(r['score']) + '/10 ' + r['level']) if r else '-':<16} {a['findings'][0]['title']}")
     elif args.cmd == "report":
         return write_report(args.refresh, not args.no_ai)
+    elif args.cmd == "doctor":
+        from . import doctor
+        return doctor.main()
+    elif args.cmd == "fixes":
+        from . import fixes
+        state = fixes.active()
+        for fix in fixes.FIXES.values():
+            print(f"{fix.id:<22} {fix.title}" + ("  [APPLIED]" if fix.id in state else ""))
+            print(f"{'':<22} removes: {', '.join(fix.addresses)}; verified with {fix.experiment['kind']} "
+                  f"on {fix.experiment['target']}; expect {fix.expect}")
+        for record in fixes.load_verifications()[-5:]:
+            print(f"\n{record['id']}: {record['summary']}")
+    elif args.cmd == "verify":
+        from . import fixes
+        try:
+            record = fixes.verify(args.fix_id, keep=args.keep, fresh_before=args.fresh_before,
+                                  duration_s=max(15, min(args.duration, 60)))
+        except (fixes.FixError, DockerError) as err:
+            print(f"Cannot verify: {err}", file=sys.stderr)
+            return 2
+        print("\n" + fixes.markdown(record))
+        print(f"Saved runs/verifications/{record['id']}.md")
+        return 0 if record["verified"] else 1
+    elif args.cmd == "revert":
+        from . import fixes
+        fix = fixes.FIXES.get(args.fix_id)
+        if fix is None:
+            print(f"Unknown fix {args.fix_id}", file=sys.stderr)
+            return 2
+        try:
+            fixes.revert(fix)
+        except (fixes.FixError, DockerError) as err:
+            print(f"Cannot revert: {err}", file=sys.stderr)
+            return 2
     return 0
 
 
@@ -364,7 +407,8 @@ def write_report(refresh: bool = False, use_ai: bool = True) -> int:
         return 2
     analyses = analyst.load_all(snapshot=snapshot, llm=from_env(enabled=use_ai), refresh=refresh)
     services = [n["id"] for n in snapshot["nodes"] if n.get("kind") == "container" and n.get("active") is not False]
-    r = analyst.report(analyses, services, list(FAULTS), snapshot["entry_point"])
+    from . import fixes
+    r = analyst.report(analyses, services, list(FAULTS), snapshot["entry_point"], fixes.load_verifications())
     paths = analyst.write_report(r)
     card = r["scorecard"]
     print(f"Overall resilience {card['overall']}/100 ({card['overall_grade']}) across {r['experiments']} experiments; "

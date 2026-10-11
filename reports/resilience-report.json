@@ -1,0 +1,716 @@
+{
+  "scorecard": {
+    "overall": 77.7,
+    "overall_grade": "C",
+    "services": [
+      {
+        "service": "visits-service",
+        "score": 68.8,
+        "grade": "C",
+        "runs": 4,
+        "tested": [
+          "delay",
+          "kill",
+          "loss"
+        ],
+        "weakest": "kill: 379 visits written before the fault were lost"
+      },
+      {
+        "service": "vets-service",
+        "score": 70.2,
+        "grade": "C",
+        "runs": 3,
+        "tested": [
+          "kill",
+          "pause"
+        ],
+        "weakest": "kill: Users saw errors: up to 60% of requests failed"
+      },
+      {
+        "service": "customers-service",
+        "score": 72.2,
+        "grade": "C",
+        "runs": 4,
+        "tested": [
+          "cpu",
+          "kill",
+          "pause"
+        ],
+        "weakest": "kill: Users saw errors: up to 100% of requests failed"
+      },
+      {
+        "service": "api-gateway",
+        "score": 99.7,
+        "grade": "A",
+        "runs": 1,
+        "tested": [
+          "spike"
+        ],
+        "weakest": "spike: Users were unaffected"
+      },
+      {
+        "service": "admin-server",
+        "score": null,
+        "grade": null,
+        "runs": 0,
+        "tested": [],
+        "weakest": null
+      },
+      {
+        "service": "config-server",
+        "score": null,
+        "grade": null,
+        "runs": 0,
+        "tested": [],
+        "weakest": null
+      },
+      {
+        "service": "discovery-server",
+        "score": null,
+        "grade": null,
+        "runs": 0,
+        "tested": [],
+        "weakest": null
+      }
+    ],
+    "tested_services": 4,
+    "total_services": 7
+  },
+  "weaknesses": [
+    {
+      "code": "data_loss",
+      "severity": "critical",
+      "title": "379 visits written before the fault were lost",
+      "evidence": "missing visit IDs [9, 40, 41, 57, 71, 75, 81, 82, 87, 95, 99, 106, 110, 130, 148, 161, 179, 191, 232, 235, 241, 278, 280, 293, 301, 303, 308, 310, 318, 365, 381, 389, 394, 400, 426, 431, 443, 472, 483, 500, 506, 511, 516, 530, 540, 601, 616, 629, 636, 655, 657, 659, 660, 667, 672, 679, 683, 684, 700, 717, 719, 734, 752, 770, 781, 793, 799, 808, 809, 810, 816, 819, 827, 835, 840, 844, 871, 882, 913, 914, 916, 930, 931, 935, 941, 944, 963, 975, 980, 1014, 1027, 1028, 1033, 1049, 1061, 1083, 1085, 1097, 1098, 1102, 1103, 1109, 1124, 1134, 1151, 1159, 1164, 1184, 1225, 1268, 1289, 1291, 1293, 1296, 1299, 1300, 1301, 1309, 1312, 1318, 1340, 1347, 1362, 1396, 1404, 1410, 1417, 1419, 1424, 1429, 1445, 1452, 1453, 1455, 1459, 1461, 1468, 1479, 1481, 1496, 1508, 1546, 1574, 1576, 1577, 1608, 1628, 1630, 1634, 1648, 1654, 1665, 1670, 1675, 1679, 1682, 1699, 1701, 1716, 1740, 1741, 1742, 1751, 1752, 1755, 1764, 1781, 1793, 1795, 1804, 1817, 1819, 1829, 1833, 1841, 1842, 1843, 1845, 1852, 1857, 1863, 1888, 1916, 1948, 1967, 1985, 2008, 2011, 2016, 2027, 2036, 2037, 2038, 2044, 2055, 2083, 2094, 2096, 2116, 2127, 2136, 2141, 2153, 2160, 2168, 2177, 2179, 2181, 2182, 2187, 2196, 2220, 2243, 2257, 2272, 2286, 2291, 2292, 2294, 2306, 2311, 2313, 2332, 2339, 2345, 2347, 2350, 2354, 2363, 2374, 2378, 2382, 2395, 2397, 2434, 2436, 2471, 2475, 2487, 2490, 2492, 2518, 2524, 2531, 2568, 2570, 2578, 2599, 2610, 2619, 2637, 2657, 2658, 2670, 2671, 2672, 2677, 2685, 2700, 2704, 2708, 2712, 2721, 2730, 2740, 2746, 2757, 2776, 2778, 2784, 2808, 2813, 2816, 2825, 2829, 2838, 2840, 2853, 2886, 2897, 2915, 2922, 2937, 2947, 2962, 2971, 2987, 2988, 2995, 3013, 3033, 3050, 3055, 3074, 3079, 3081, 3082, 3087, 3090, 3111, 3112, 3121, 3130, 3132, 3137, 3143, 3154, 3170, 3172, 3200, 3219, 3223, 3255, 3276, 3289, 3293, 3321, 3323, 3328, 3329, 3339, 3345, 3349, 3390, 3393, 3406, 3418, 3422, 3440, 3444, 3460, 3477, 3490, 3519, 3525, 3527, 3529, 3536, 3539, 3550, 3555, 3569, 3572, 3574, 3575, 3591, 3604, 3605, 3643, 3647, 3673, 3681, 3683, 3691, 3692, 3700, 3720, 3725, 3767, 3771, 3783, 3796, 3803, 3831, 3844, 3849, 3852, 3854, 3870, 3873, 3897, 3899, 3900, 3912, 3923, 3924, 3928, 3931, 3979]; the run's canary visit 3979 was lost. The service came back with an empty in-memory database",
+      "service": "visits-service",
+      "runs": [
+        "20261010-163855-kill-visits-service",
+        "20261010-164228-kill-visits-service"
+      ],
+      "risk": 8.5,
+      "fixes": [
+        {
+          "id": "persistent-database",
+          "title": "Move visits-service off its in-memory database",
+          "why": "missing visit IDs [9, 40, 41, 57, 71, 75, 81, 82, 87, 95, 99, 106, 110, 130, 148, 161, 179, 191, 232, 235, 241, 278, 280, 293, 301, 303, 308, 310, 318, 365, 381, 389, 394, 400, 426, 431, 443, 472, 483, 500, 506, 511, 516, 530, 540, 601, 616, 629, 636, 655, 657, 659, 660, 667, 672, 679, 683, 684, 700, 717, 719, 734, 752, 770, 781, 793, 799, 808, 809, 810, 816, 819, 827, 835, 840, 844, 871, 882, 913, 914, 916, 930, 931, 935, 941, 944, 963, 975, 980, 1014, 1027, 1028, 1033, 1049, 1061, 1083, 1085, 1097, 1098, 1102, 1103, 1109, 1124, 1134, 1151, 1159, 1164, 1184, 1225, 1268, 1289, 1291, 1293, 1296, 1299, 1300, 1301, 1309, 1312, 1318, 1340, 1347, 1362, 1396, 1404, 1410, 1417, 1419, 1424, 1429, 1445, 1452, 1453, 1455, 1459, 1461, 1468, 1479, 1481, 1496, 1508, 1546, 1574, 1576, 1577, 1608, 1628, 1630, 1634, 1648, 1654, 1665, 1670, 1675, 1679, 1682, 1699, 1701, 1716, 1740, 1741, 1742, 1751, 1752, 1755, 1764, 1781, 1793, 1795, 1804, 1817, 1819, 1829, 1833, 1841, 1842, 1843, 1845, 1852, 1857, 1863, 1888, 1916, 1948, 1967, 1985, 2008, 2011, 2016, 2027, 2036, 2037, 2038, 2044, 2055, 2083, 2094, 2096, 2116, 2127, 2136, 2141, 2153, 2160, 2168, 2177, 2179, 2181, 2182, 2187, 2196, 2220, 2243, 2257, 2272, 2286, 2291, 2292, 2294, 2306, 2311, 2313, 2332, 2339, 2345, 2347, 2350, 2354, 2363, 2374, 2378, 2382, 2395, 2397, 2434, 2436, 2471, 2475, 2487, 2490, 2492, 2518, 2524, 2531, 2568, 2570, 2578, 2599, 2610, 2619, 2637, 2657, 2658, 2670, 2671, 2672, 2677, 2685, 2700, 2704, 2708, 2712, 2721, 2730, 2740, 2746, 2757, 2776, 2778, 2784, 2808, 2813, 2816, 2825, 2829, 2838, 2840, 2853, 2886, 2897, 2915, 2922, 2937, 2947, 2962, 2971, 2987, 2988, 2995, 3013, 3033, 3050, 3055, 3074, 3079, 3081, 3082, 3087, 3090, 3111, 3112, 3121, 3130, 3132, 3137, 3143, 3154, 3170, 3172, 3200, 3219, 3223, 3255, 3276, 3289, 3293, 3321, 3323, 3328, 3329, 3339, 3345, 3349, 3390, 3393, 3406, 3418, 3422, 3440, 3444, 3460, 3477, 3490, 3519, 3525, 3527, 3529, 3536, 3539, 3550, 3555, 3569, 3572, 3574, 3575, 3591, 3604, 3605, 3643, 3647, 3673, 3681, 3683, 3691, 3692, 3700, 3720, 3725, 3767, 3771, 3783, 3796, 3803, 3831, 3844, 3849, 3852, 3854, 3870, 3873, 3897, 3899, 3900, 3912, 3923, 3924, 3928, 3931, 3979]; the run's canary visit 3979 was lost. The service came back with an empty in-memory database",
+          "steps": [
+            "Add a MySQL service with a named volume to the Compose file",
+            "Start visits-service with the Spring profile `mysql` (the service already ships db/mysql/schema.sql and the MySQL driver) and point SPRING_DATASOURCE_URL at it",
+            "Keep the HSQLDB profile for unit tests only"
+          ],
+          "verify": "python3 -m chaoslab run kill visits-service  # expect: no data-loss line, canary visit survives",
+          "effort": "medium",
+          "confidence": 0.9,
+          "source": "library",
+          "addresses": [
+            "data_loss"
+          ]
+        }
+      ],
+      "verification": {
+        "id": "20261011-190331-persistent-database",
+        "verified": true,
+        "summary": "Verified: the fix removed data_loss. Risk 8.5/10 critical before, 5.2/10 medium after; visits lost 1 before, 0 after; recovery 13.1 s before, 13.2 s after."
+      }
+    },
+    {
+      "code": "silent_degradation",
+      "severity": "high",
+      "title": "Owner pages returned HTTP 200 with their visits missing",
+      "evidence": "2 correctness probes during the fault got 200 with no visits; a status-code monitor would report everything as fine",
+      "service": "visits-service",
+      "runs": [
+        "20261010-163855-kill-visits-service",
+        "20261010-164228-kill-visits-service"
+      ],
+      "risk": 8.5,
+      "fixes": [
+        {
+          "id": "visible-fallbacks",
+          "title": "Make degraded owner pages visible instead of a silent 200",
+          "why": "2 correctness probes during the fault got 200 with no visits; a status-code monitor would report everything as fine",
+          "steps": [
+            "In the Gateway's owner-details fallback, mark the response as partial (for example a `X-Degraded: visits` header or a `visitsUnavailable` field)",
+            "Count fallback responses in Micrometer and alert on them, not only on 5xx",
+            "Show 'visits temporarily unavailable' in the UI rather than an empty list"
+          ],
+          "verify": "python3 -m chaoslab run kill visits-service  # expect: degraded pages carry the marker; the fallback counter rises",
+          "effort": "low",
+          "confidence": 0.85,
+          "source": "library",
+          "addresses": [
+            "silent_degradation"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "no_self_healing",
+      "severity": "high",
+      "title": "visits-service only came back because ChaosLab restarted it",
+      "evidence": "the container has no restart policy and runs a single instance: without the experiment's undo step it would have stayed down",
+      "service": "visits-service",
+      "runs": [
+        "20261010-163855-kill-visits-service",
+        "20261010-164228-kill-visits-service"
+      ],
+      "risk": 8.5,
+      "fixes": [
+        {
+          "id": "self-healing",
+          "title": "Let visits-service restart itself and run a second instance",
+          "why": "the container has no restart policy and runs a single instance: without the experiment's undo step it would have stayed down",
+          "steps": [
+            "Add `restart: unless-stopped` to the service in Compose (an orchestrator's liveness probe in production)",
+            "Run two instances behind Eureka so the Gateway's load balancer keeps serving while one restarts"
+          ],
+          "verify": "python3 -m chaoslab run kill visits-service  # with the undo step removed, expect the service back on its own",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "no_self_healing"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "user_errors",
+      "severity": "high",
+      "title": "Users saw errors: up to 100% of requests failed",
+      "evidence": "failing actions: list owners 29%, owner details 27%",
+      "service": "customers-service",
+      "runs": [
+        "20261010-162647-kill-customers-service",
+        "20261010-163522-kill-customers-service"
+      ],
+      "risk": 7.9,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 11000 ms against a baseline of 21 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill customers-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "no_self_healing",
+      "severity": "high",
+      "title": "customers-service only came back because ChaosLab restarted it",
+      "evidence": "the container has no restart policy and runs a single instance: without the experiment's undo step it would have stayed down",
+      "service": "customers-service",
+      "runs": [
+        "20261010-162647-kill-customers-service",
+        "20261010-163522-kill-customers-service"
+      ],
+      "risk": 7.9,
+      "fixes": [
+        {
+          "id": "self-healing",
+          "title": "Let customers-service restart itself and run a second instance",
+          "why": "the container has no restart policy and runs a single instance: without the experiment's undo step it would have stayed down",
+          "steps": [
+            "Add `restart: unless-stopped` to the service in Compose (an orchestrator's liveness probe in production)",
+            "Run two instances behind Eureka so the Gateway's load balancer keeps serving while one restarts"
+          ],
+          "verify": "python3 -m chaoslab run kill customers-service  # with the undo step removed, expect the service back on its own",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "no_self_healing"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "user_errors",
+      "severity": "high",
+      "title": "Users saw errors: up to 60% of requests failed",
+      "evidence": "failing actions: list vets 47%",
+      "service": "vets-service",
+      "runs": [
+        "20261010-133634-kill-vets-service",
+        "20261010-134825-kill-vets-service",
+        "20261010-165522-pause-vets-service"
+      ],
+      "risk": 6.5,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 10000 ms against a baseline of 29 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill vets-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "no_self_healing",
+      "severity": "high",
+      "title": "vets-service only came back because ChaosLab restarted it",
+      "evidence": "the container has no restart policy and runs a single instance: without the experiment's undo step it would have stayed down",
+      "service": "vets-service",
+      "runs": [
+        "20261010-133634-kill-vets-service",
+        "20261010-134825-kill-vets-service"
+      ],
+      "risk": 6.5,
+      "fixes": [
+        {
+          "id": "self-healing",
+          "title": "Let vets-service restart itself and run a second instance",
+          "why": "the container has no restart policy and runs a single instance: without the experiment's undo step it would have stayed down",
+          "steps": [
+            "Add `restart: unless-stopped` to the service in Compose (an orchestrator's liveness probe in production)",
+            "Run two instances behind Eureka so the Gateway's load balancer keeps serving while one restarts"
+          ],
+          "verify": "python3 -m chaoslab run kill vets-service  # with the undo step removed, expect the service back on its own",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "no_self_healing"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "collateral_damage",
+      "severity": "high",
+      "title": "Actions that never call the target failed too",
+      "evidence": "list vets failed although they do not use vets-service: the failure spread through something they share, such as the Gateway's circuit breaker",
+      "service": "vets-service",
+      "runs": [
+        "20261010-133634-kill-vets-service"
+      ],
+      "risk": 6.5,
+      "fixes": [
+        {
+          "id": "separate-circuit-breakers",
+          "title": "Give each route its own circuit breaker",
+          "why": "list vets failed although they do not use vets-service: the failure spread through something they share, such as the Gateway's circuit breaker",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/resources/application.yml, the default filter uses one `defaultCircuitBreaker` for every route",
+            "Name one circuit breaker per downstream service (customers, visits, vets) so one failing service cannot open the breaker for the others"
+          ],
+          "verify": "python3 -m chaoslab run kill vets-service  # expect: no collateral actions",
+          "effort": "low",
+          "confidence": 0.75,
+          "source": "library",
+          "addresses": [
+            "collateral_damage"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "hang_not_fail",
+      "severity": "medium",
+      "title": "Requests hung for up to 10 s instead of failing fast",
+      "evidence": "peak p95 10000 ms against a baseline of 20 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+      "service": "visits-service",
+      "runs": [
+        "20261010-163855-kill-visits-service",
+        "20261010-164228-kill-visits-service"
+      ],
+      "risk": 8.5,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 10000 ms against a baseline of 20 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill visits-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "throughput_collapse",
+      "severity": "medium",
+      "title": "Completed requests fell below 30% of normal",
+      "evidence": "lowest 1.4 req/s against 4.9 normally: users were stuck waiting",
+      "service": "visits-service",
+      "runs": [
+        "20261010-163855-kill-visits-service",
+        "20261010-164228-kill-visits-service"
+      ],
+      "risk": 8.5,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 10000 ms against a baseline of 20 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill visits-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "hang_not_fail",
+      "severity": "medium",
+      "title": "Requests hung for up to 11 s instead of failing fast",
+      "evidence": "peak p95 11000 ms against a baseline of 21 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+      "service": "customers-service",
+      "runs": [
+        "20261010-162647-kill-customers-service",
+        "20261010-163522-kill-customers-service",
+        "20261011-184228-pause-customers-service"
+      ],
+      "risk": 7.9,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 11000 ms against a baseline of 21 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill customers-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "throughput_collapse",
+      "severity": "medium",
+      "title": "Completed requests fell below 30% of normal",
+      "evidence": "lowest 0.0 req/s against 4.5 normally: users were stuck waiting",
+      "service": "customers-service",
+      "runs": [
+        "20261010-162647-kill-customers-service",
+        "20261010-163522-kill-customers-service",
+        "20261011-184228-pause-customers-service"
+      ],
+      "risk": 7.9,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 11000 ms against a baseline of 21 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill customers-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "hang_not_fail",
+      "severity": "medium",
+      "title": "Requests hung for up to 10 s instead of failing fast",
+      "evidence": "peak p95 10000 ms against a baseline of 29 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+      "service": "vets-service",
+      "runs": [
+        "20261010-133634-kill-vets-service",
+        "20261010-134825-kill-vets-service",
+        "20261010-165522-pause-vets-service"
+      ],
+      "risk": 6.5,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 10000 ms against a baseline of 29 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill vets-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "throughput_collapse",
+      "severity": "medium",
+      "title": "Completed requests fell below 30% of normal",
+      "evidence": "lowest 0.8 req/s against 4.9 normally: users were stuck waiting",
+      "service": "vets-service",
+      "runs": [
+        "20261010-133634-kill-vets-service",
+        "20261010-134825-kill-vets-service",
+        "20261010-165522-pause-vets-service"
+      ],
+      "risk": 6.5,
+      "fixes": [
+        {
+          "id": "fail-fast",
+          "title": "Fail fast: lower the Gateway's 10 s TimeLimiter",
+          "why": "peak p95 10000 ms against a baseline of 29 ms: callers waited for the Gateway's 10 s TimeLimiter before getting an answer",
+          "steps": [
+            "In spring-petclinic-api-gateway/src/main/java/org/springframework/samples/petclinic/api/ApiGatewayApplication.java, defaultCustomizer sets TimeLimiterConfig timeoutDuration to 10 s; use about 2 s (well above the 20 ms normal p95)",
+            "Make it configurable (for example resilience4j.timelimiter properties) so each route can differ",
+            "Add a connect and response timeout to the Gateway's WebClient for the owner lookup, which has none"
+          ],
+          "verify": "python3 -m chaoslab run kill vets-service  # expect: peak p95 near 2 s instead of 10 s, throughput holds",
+          "effort": "low",
+          "confidence": 0.8,
+          "source": "library",
+          "addresses": [
+            "hang_not_fail",
+            "throughput_collapse"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "user_errors",
+      "severity": "low",
+      "title": "Users saw errors: up to 19% of requests failed",
+      "evidence": "failing actions: add visit 43%",
+      "service": "visits-service",
+      "runs": [
+        "20261010-163855-kill-visits-service",
+        "20261010-164228-kill-visits-service"
+      ],
+      "risk": 8.5,
+      "fixes": [
+        {
+          "id": "persistent-database",
+          "title": "Move visits-service off its in-memory database",
+          "why": "missing visit IDs [9, 40, 41, 57, 71, 75, 81, 82, 87, 95, 99, 106, 110, 130, 148, 161, 179, 191, 232, 235, 241, 278, 280, 293, 301, 303, 308, 310, 318, 365, 381, 389, 394, 400, 426, 431, 443, 472, 483, 500, 506, 511, 516, 530, 540, 601, 616, 629, 636, 655, 657, 659, 660, 667, 672, 679, 683, 684, 700, 717, 719, 734, 752, 770, 781, 793, 799, 808, 809, 810, 816, 819, 827, 835, 840, 844, 871, 882, 913, 914, 916, 930, 931, 935, 941, 944, 963, 975, 980, 1014, 1027, 1028, 1033, 1049, 1061, 1083, 1085, 1097, 1098, 1102, 1103, 1109, 1124, 1134, 1151, 1159, 1164, 1184, 1225, 1268, 1289, 1291, 1293, 1296, 1299, 1300, 1301, 1309, 1312, 1318, 1340, 1347, 1362, 1396, 1404, 1410, 1417, 1419, 1424, 1429, 1445, 1452, 1453, 1455, 1459, 1461, 1468, 1479, 1481, 1496, 1508, 1546, 1574, 1576, 1577, 1608, 1628, 1630, 1634, 1648, 1654, 1665, 1670, 1675, 1679, 1682, 1699, 1701, 1716, 1740, 1741, 1742, 1751, 1752, 1755, 1764, 1781, 1793, 1795, 1804, 1817, 1819, 1829, 1833, 1841, 1842, 1843, 1845, 1852, 1857, 1863, 1888, 1916, 1948, 1967, 1985, 2008, 2011, 2016, 2027, 2036, 2037, 2038, 2044, 2055, 2083, 2094, 2096, 2116, 2127, 2136, 2141, 2153, 2160, 2168, 2177, 2179, 2181, 2182, 2187, 2196, 2220, 2243, 2257, 2272, 2286, 2291, 2292, 2294, 2306, 2311, 2313, 2332, 2339, 2345, 2347, 2350, 2354, 2363, 2374, 2378, 2382, 2395, 2397, 2434, 2436, 2471, 2475, 2487, 2490, 2492, 2518, 2524, 2531, 2568, 2570, 2578, 2599, 2610, 2619, 2637, 2657, 2658, 2670, 2671, 2672, 2677, 2685, 2700, 2704, 2708, 2712, 2721, 2730, 2740, 2746, 2757, 2776, 2778, 2784, 2808, 2813, 2816, 2825, 2829, 2838, 2840, 2853, 2886, 2897, 2915, 2922, 2937, 2947, 2962, 2971, 2987, 2988, 2995, 3013, 3033, 3050, 3055, 3074, 3079, 3081, 3082, 3087, 3090, 3111, 3112, 3121, 3130, 3132, 3137, 3143, 3154, 3170, 3172, 3200, 3219, 3223, 3255, 3276, 3289, 3293, 3321, 3323, 3328, 3329, 3339, 3345, 3349, 3390, 3393, 3406, 3418, 3422, 3440, 3444, 3460, 3477, 3490, 3519, 3525, 3527, 3529, 3536, 3539, 3550, 3555, 3569, 3572, 3574, 3575, 3591, 3604, 3605, 3643, 3647, 3673, 3681, 3683, 3691, 3692, 3700, 3720, 3725, 3767, 3771, 3783, 3796, 3803, 3831, 3844, 3849, 3852, 3854, 3870, 3873, 3897, 3899, 3900, 3912, 3923, 3924, 3928, 3931, 3979]; the run's canary visit 3979 was lost. The service came back with an empty in-memory database",
+          "steps": [
+            "Add a MySQL service with a named volume to the Compose file",
+            "Start visits-service with the Spring profile `mysql` (the service already ships db/mysql/schema.sql and the MySQL driver) and point SPRING_DATASOURCE_URL at it",
+            "Keep the HSQLDB profile for unit tests only"
+          ],
+          "verify": "python3 -m chaoslab run kill visits-service  # expect: no data-loss line, canary visit survives",
+          "effort": "medium",
+          "confidence": 0.9,
+          "source": "library",
+          "addresses": [
+            "data_loss"
+          ]
+        }
+      ]
+    },
+    {
+      "code": "prediction_wrong",
+      "severity": "low",
+      "title": "The dependency model predicted this wrongly",
+      "evidence": "list owners: predicted unavailable, observed preserved; pet types: predicted unavailable, observed preserved",
+      "service": "customers-service",
+      "runs": [
+        "20261010-162647-kill-customers-service"
+      ],
+      "risk": 7.9,
+      "fixes": [
+        {
+          "id": "update-model",
+          "title": "Correct the dependency model's rule",
+          "why": "list owners: predicted unavailable, observed preserved; pet types: predicted unavailable, observed preserved",
+          "steps": [
+            "Update the matching rule in dependency-semantics.json with what this run measured, and record the run as its evidence"
+          ],
+          "verify": "python3 -m chaoslab impact customers-service --failure kill",
+          "effort": "low",
+          "confidence": 0.9,
+          "source": "library",
+          "addresses": [
+            "prediction_wrong"
+          ]
+        }
+      ]
+    }
+  ],
+  "experiments": 12,
+  "verifications": [
+    {
+      "id": "20261011-190331-persistent-database",
+      "fix": {
+        "id": "persistent-database",
+        "title": "Move customers and visits from in-memory HSQLDB to a persistent MySQL database",
+        "why": "A crash of visits-service lost every visit written since it started, including the run's canary.",
+        "override": "fixes/persistent-database.compose.yml",
+        "services": [
+          "mysql-server",
+          "customers-service",
+          "visits-service"
+        ],
+        "addresses": [
+          "data_loss"
+        ],
+        "expect": "the canary visit and every visit written before the crash are still there after the restart"
+      },
+      "experiment": {
+        "kind": "kill",
+        "target": "visits-service",
+        "duration_s": 30
+      },
+      "notes": [
+        "before: the most recent run of this experiment without the fix, 20261010-164228-kill-visits-service",
+        "the dependency model still describes the system without the fix, so its prediction did not match the run with the fix; that is expected, not a new weakness"
+      ],
+      "kept": false,
+      "applied_at": 1791725796.430388,
+      "reverted_at": 1791725962.321664,
+      "before": {
+        "run_id": "20261010-164228-kill-visits-service",
+        "verdict": "data lost",
+        "risk": {
+          "score": 8.5,
+          "level": "critical",
+          "factors": {
+            "user_errors": 0.88,
+            "breadth": 0.8,
+            "slowness": 1.0,
+            "recovery": 0.16,
+            "silent_degradation": 1.0,
+            "collateral_damage": 0.0,
+            "hang_not_fail": 0.5,
+            "stall": 0.87,
+            "no_self_healing": 0.5
+          },
+          "floor": "data loss is critical"
+        },
+        "findings": [
+          "data_loss",
+          "silent_degradation",
+          "no_self_healing",
+          "user_errors",
+          "hang_not_fail",
+          "throughput_collapse"
+        ],
+        "data_loss_visits": 1,
+        "canary_lost": true,
+        "peak_error_rate": 0.25,
+        "peak_p95_ms": 10000,
+        "recovered": true,
+        "recovery_s": 13.1
+      },
+      "after": {
+        "run_id": "20261011-190636-kill-visits-service",
+        "verdict": "tripped",
+        "risk": {
+          "score": 5.2,
+          "level": "medium",
+          "factors": {
+            "user_errors": 0.25,
+            "breadth": 0.8,
+            "slowness": 1.0,
+            "recovery": 0.17,
+            "silent_degradation": 1.0,
+            "collateral_damage": 0.0,
+            "hang_not_fail": 0.5,
+            "stall": 0.96,
+            "no_self_healing": 0.5
+          },
+          "floor": null
+        },
+        "findings": [
+          "silent_degradation",
+          "no_self_healing",
+          "hang_not_fail",
+          "throughput_collapse",
+          "user_errors",
+          "prediction_wrong"
+        ],
+        "data_loss_visits": 0,
+        "canary_lost": false,
+        "peak_error_rate": 0.07142857142857142,
+        "peak_p95_ms": 10000,
+        "recovered": true,
+        "recovery_s": 13.2
+      },
+      "resolved": [
+        "data_loss"
+      ],
+      "remaining": [
+        "silent_degradation",
+        "no_self_healing",
+        "hang_not_fail",
+        "throughput_collapse",
+        "user_errors"
+      ],
+      "new": [],
+      "verified": true,
+      "summary": "Verified: the fix removed data_loss. Risk 8.5/10 critical before, 5.2/10 medium after; visits lost 1 before, 0 after; recovery 13.1 s before, 13.2 s after."
+    }
+  ],
+  "refused": 2,
+  "coverage": {
+    "tested_pairs": 9,
+    "possible_pairs": 50
+  },
+  "hypotheses": {
+    "held": 1,
+    "checked": 1
+  },
+  "risk_levels": {
+    "critical": 2,
+    "high": 3,
+    "medium": 3,
+    "low": 4
+  }
+}

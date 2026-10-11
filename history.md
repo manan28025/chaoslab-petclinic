@@ -6,6 +6,9 @@ This file records meaningful, user-facing changes to the project. Detailed imple
 
 ### Added
 
+- Added `chaoslab doctor` (and `make doctor`), which checks Docker, the sandbox, user traffic, monitoring, the dependency map, the AI model, disk space and leftover faults or fixes, and says how to fix each problem; `make demo` runs an AI-planned campaign and writes the report, `make test` runs the offline suite, and a GitHub Actions workflow runs it on every push.
+- Added fix and verify (`chaoslab verify`): a recommended fix is applied to the sandbox as a Compose override, the experiment that exposed the weakness is rerun, before and after are compared, and the sandbox is restored; the first fix moves customers and visits to a persistent MySQL database.
+- Added two fault types: graceful stop (SIGTERM, so the service can deregister first) and network partition (the container keeps running but is cut off its networks), with predictions, planning, analysis and bench support.
 - The bench's console has an AI planner mode: ask for a plan, see the code's ranked candidates, the pick, its rationale and hypothesis, approve risky plans and launch them; the recorder shows each run's findings, risk score, hypothesis check and fixes, and the findings section shows the resilience score, top weaknesses and the A-F scorecard.
 - Added an AI planner (`chaoslab plan`, `chaoslab auto`) that ranks every allowed fault in code, lets an optional language model investigate with read-only tools, pick from the top five and write a falsifiable hypothesis, validates and clamps its plan with feedback for corrections, falls back to the top-ranked plan without a model, and asks for approval before plans that could lose data or take down start-up dependencies.
 - Added an analyst (`chaoslab analyze`, `chaoslab report`) that turns every run into findings, a deterministic 0-10 risk score, a hypothesis check and PetClinic-specific fixes with verification commands, and merges all runs into ranked weaknesses and an A-F scorecard; a language model may only write the explanations and two fixes labelled unverified.
@@ -29,6 +32,7 @@ This file records meaningful, user-facing changes to the project. Detailed imple
 
 ### Changed
 
+- Recovery now needs 15 s more of normal service after it first looks normal; a relapse in that window is recorded, resets the wait and becomes a finding.
 - Experiments stream each second's measurements to `runs/<run>/timeline.jsonl`, so a run can be watched while it happens.
 - The README describes the owner 6 fixture, the canary visit, data-loss reporting and the comparison window.
 - Integrated the Spring PetClinic microservices source tree into the main repository for unified version control.

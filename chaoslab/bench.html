@@ -92,12 +92,12 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; 
 .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); min-width: 0; }
 .brand svg { flex: none; }
 .brand b { font: 800 19px/1 var(--display); font-stretch: 112%; letter-spacing: -.01em; }
-.brand span { font-size: 14px; color: var(--ink-2); white-space: nowrap; }
+.brand span { font-size: 14px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 nav.sections { display: flex; gap: 22px; margin-left: auto; }
 nav.sections a { color: var(--ink); text-decoration: none; font-size: 14.5px; padding: 6px 0; border-bottom: 2px solid transparent; }
 nav.sections a:hover { border-bottom-color: var(--action); }
 .top-tools { display: flex; align-items: center; gap: 14px; }
-.sys { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 6px 10px; background: var(--ground); white-space: nowrap; }
+.sys { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 6px 10px; background: var(--ground); white-space: nowrap; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
 .sys i { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
 .sys.attack i { background: var(--alarm); box-shadow: 0 0 0 3px color-mix(in srgb, var(--alarm) 25%, transparent); animation: blink 1s steps(2) infinite; }
 .sys.offline i { background: var(--ink-3); box-shadow: none; }
@@ -162,6 +162,7 @@ button.node:hover { border-color: var(--ink); }
 .node.o-degraded:not(.target) { border-color: var(--warn-text); }
 .node.is-down { background: repeating-linear-gradient(-45deg, var(--stage-node) 0 6px, var(--ground-2) 6px 12px); border-style: dashed; }
 .node.is-frozen { background: color-mix(in srgb, var(--action) 14%, var(--stage-node)); }
+.node.is-cut { border-style: dashed; border-color: var(--alarm); }
 .node.is-hot { animation: heat 1.1s ease-in-out infinite; }
 @keyframes heat { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 45%, transparent); } }
 .node.drop { outline: 2px dashed var(--action); outline-offset: 4px; }
@@ -179,8 +180,8 @@ button.node:hover { border-color: var(--ink); }
 #liveView { display: grid; gap: 14px; }
 .arm-col { display: grid; gap: 16px; align-content: start; min-width: 0; }
 .console .step { display: flex; align-items: baseline; gap: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin-bottom: 8px; }
-.attacks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-.attack { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 10px 9px; background: var(--ground); border: 2px solid transparent; text-align: left; font-size: 13px; font-weight: 600; line-height: 1.2; min-height: 66px; }
+.attacks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.attack { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 9px 8px 8px; background: var(--ground); border: 2px solid transparent; text-align: left; font-size: 12.5px; font-weight: 600; line-height: 1.2; min-height: 62px; }
 .attack:hover { border-color: var(--ink-3); }
 .attack[aria-pressed="true"] { background: var(--paper); border-color: var(--action); color: var(--action); }
 .attack kbd { font: 600 10px var(--mono); color: var(--ink-3); margin-left: auto; }
@@ -241,6 +242,7 @@ button.node:hover { border-color: var(--ink); }
 .weak .t { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-weight: 600; }
 .weak .f { font-size: 13px; color: var(--ink-2); }
 .weak .f b { color: var(--ok); }
+.weak .f.verified { margin-top: 4px; }
 .grades { display: grid; gap: 10px; }
 .grade-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(60px, 120px) 42px 34px; gap: 10px; align-items: center; font-size: 13.5px; }
 .grade-row .bar { height: 8px; background: var(--ground-2); }
@@ -315,7 +317,7 @@ button.node:hover { border-color: var(--ink); }
 .figures b { display: block; font: 750 34px/1.1 var(--display); font-stretch: 106%; font-variant-numeric: tabular-nums; }
 .figures span { font-size: 13px; color: var(--ink-2); }
 .matrix-scroll { overflow-x: auto; }
-table.matrix { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 760px; margin: -4px; }
+table.matrix { border-collapse: separate; border-spacing: 4px; width: 100%; min-width: 960px; margin: -4px; }
 .matrix th { font-size: 13px; font-weight: 600; text-align: left; color: var(--ink-2); padding: 4px 6px; white-space: nowrap; }
 .matrix thead th { vertical-align: bottom; }
 .matrix thead th span { display: inline-flex; align-items: center; gap: 6px; }
@@ -427,6 +429,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 
 @media (max-width: 1180px) {
   nav.sections { display: none; }
+  .brand span { display: none; }
   .top-tools { margin-left: auto; }
   .features { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .feature { grid-column: span 2; }
@@ -620,7 +623,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 28px; padding-block: 22p
 <script>
 "use strict";
 const SVGNS = "http://www.w3.org/2000/svg";
-const NAMES = {kill: "Crash", pause: "Freeze", delay: "Slow network", loss: "Lossy network", cpu: "CPU starvation", spike: "Traffic spike"};
+const NAMES = {kill: "Crash", pause: "Freeze", delay: "Slow network", loss: "Lossy network", cpu: "CPU starvation", spike: "Traffic spike", stop: "Graceful stop", partition: "Partition"};
 const SIMULATES = {
   kill: "A process dies, like an out-of-memory kill or a lost machine.",
   pause: "A process hangs: connections stay open but nothing answers.",
@@ -628,6 +631,8 @@ const SIMULATES = {
   loss: "Packets the service sends go missing; 100% cuts it off.",
   cpu: "The service gets a sliver of CPU, like a noisy neighbour.",
   spike: "A sudden surge of users at the front door.",
+  stop: "A clean shutdown, like a rolling deploy: the service can leave the registry before it goes.",
+  partition: "The service keeps running but nobody can reach it, like a failed switch.",
 };
 const ACTIONS = ["list owners", "owner details", "list vets", "pet types", "add visit"];
 const HUE = {"list owners": "--a1", "owner details": "--a2", "list vets": "--a3", "pet types": "--a4", "add visit": "--a5"};
@@ -709,6 +714,8 @@ function glyph(kind, size = 18) {
   else if (kind === "delay") { g.append(sv("circle", {cx: 10, cy: 10, r: 7, fill: "none", stroke: "currentColor", "stroke-width": 1.9})); line("M10 6v4l3 2"); }
   else if (kind === "loss") line("M2 10h3M8 10h2M13 10h1.5M17.5 10h.5", {"stroke-width": 2.6});
   else if (kind === "cpu") { g.append(sv("rect", {x: 5, y: 5, width: 10, height: 10, fill: "none", stroke: "currentColor", "stroke-width": 1.9})); line("M8 2v3M12 2v3M8 15v3M12 15v3M2 8h3M2 12h3M15 8h3M15 12h3"); }
+  else if (kind === "stop") g.append(sv("rect", {x: 5, y: 5, width: 10, height: 10, fill: "currentColor"}));
+  else if (kind === "partition") { line("M2 10h5M13 10h5"); line("M9 5l2 10"); }
   else { line("M3 16l4-5 3 3 6-8"); line("M12 6h4v4"); }
   return g;
 }
@@ -1032,12 +1039,17 @@ function advance(p, dt, faults) {
       return;
     }
   }
+  if (fb && fb.kind === "partition" && p.d >= seg.len * 0.7) {   // the link is cut before the service
+    const at = pointAt(seg, p.d);
+    if (p.doomAt === seg.to) { p.back = true; p.red = true; return; }
+    B.bursts.push({x: at.x + 6, y: at.y, t: 0}); p.dead = true; return;
+  }
   if (p.d < seg.len) return;
   const node = seg.to, f = faults[node];
   p.d = seg.len;
   if (f && f.kind === "pause") { p.state = "queue"; p.queueAt = node; p.wait = 0; return; }
   if (p.doomAt === node) { p.back = true; p.red = true; return; }
-  if (f && f.kind === "kill") { const at = pointAt(seg, seg.len); B.bursts.push({x: at.x, y: at.y, t: 0}); p.dead = true; return; }
+  if (f && (f.kind === "kill" || f.kind === "stop")) { const at = pointAt(seg, seg.len); B.bursts.push({x: at.x, y: at.y, t: 0}); p.dead = true; return; }
   if (f && f.kind === "cpu") { p.state = "dwell"; p.wait = 0.5; }
   if (p.seg === p.route.length - 1) { p.dead = true; return; }
   p.seg += 1; p.d = 0; p.lossChecked = false;
@@ -1164,13 +1176,14 @@ function paintNodes() {
     node.classList.toggle("target", id === S.target && !S.replay);
     node.classList.toggle("dim", S.mode === "spike" && node.tagName === "BUTTON" && id !== S.map.entry_point && !S.replay);
     for (const o of ["unavailable", "degraded", "uncertain"]) node.classList.toggle(`o-${o}`, impact[id] === o);
-    node.classList.toggle("is-down", !!f && f.kind === "kill");
+    node.classList.toggle("is-down", !!f && (f.kind === "kill" || f.kind === "stop"));
+    node.classList.toggle("is-cut", !!f && f.kind === "partition");
     node.classList.toggle("is-frozen", !!f && f.kind === "pause");
     node.classList.toggle("is-hot", !!f && f.kind === "cpu");
     const badge = node.querySelector(".badge");
     let label = null;
     if (f) label = {kill: "down", pause: "frozen", delay: `+${f.params.delay_ms ?? ""} ms`, loss: `${f.params.loss_pct ?? ""}% loss`,
-                    cpu: `${f.params.cpus ?? ""} cpu`, spike: null}[f.kind];
+                    cpu: `${f.params.cpus ?? ""} cpu`, spike: null, stop: "stopped", partition: "cut off"}[f.kind];
     if (id === "__users") {
       const spike = Object.values(faults).find(x => x.kind === "spike");
       label = spike ? `×${spike.params.multiplier} users` : null;
@@ -1446,17 +1459,17 @@ function renderLiveView() {
   const at = order.indexOf(phase);
   const last = tl[tl.length - 1] || {};
   const fault = run.fault || {};
-  view.replaceChildren(
+  view.replaceChildren(...[
     el("div", {class: "live-head"}, el("span", {class: "tag"}, el("i"), "live"), el("span", {class: "fine mono", text: run.id})),
     el("h2", {text: `${NAMES[fault.kind] || fault.kind} on ${fault.target}`}),
-    el("ol", {class: "stepper"}, steps.map(([key, name, t], i) => el("li", {class: i < at ? "done" : i === at ? "now" : ""}, el("span"), el("span", {text: name}), el("span", {class: "t", text: t})))),
+    el("ol", {class: "stepper"}, steps.map(([key, name, t], i) => el("li", {class: i < at ? "done" : i === at ? "now" : ""}, el("span", {text: name}), el("span", {class: "t", text: t})))),
     el("div", {class: "mini"},
       el("div", {}, el("span", {text: "throughput"}), el("b", {text: last.rps != null ? last.rps.toFixed(1) : "–"})),
       el("div", {}, el("span", {text: "errors"}), el("b", {text: pct(last.error_rate)})),
       el("div", {}, el("span", {text: "p95"}), el("b", {text: ms(last.p95_ms)}))),
     last.semantic_correctness ? el("p", {class: "fine", text: `Owner 6's page: ${last.semantic_correctness}`}) : null,
     el("a", {class: "link", href: "#recorder", text: "Watch the recording"}),
-    el("p", {class: "fine", text: "Press the emergency stop at any time to undo the fault."}));
+    el("p", {class: "fine", text: "Press the emergency stop at any time to undo the fault."})].filter(Boolean));
 }
 async function pollLive() {
   try {
@@ -1568,6 +1581,7 @@ function renderMatrix() {
   const services = matrixServices(), kinds = Object.keys(NAMES), entry = S.map ? S.map.entry_point : "api-gateway";
   const latest = {}, counts = {};
   for (const run of S.runs) {
+    if (run.fix) continue;   // ran with a fix applied; shown with its verification, not as the system's state
     const k = `${run.fault.kind}|${run.fault.target}`;
     counts[k] = (counts[k] || 0) + 1;
     if (!latest[k] || (latest[k].outcome === "refused" && run.outcome !== "refused")) latest[k] = run;
@@ -1614,7 +1628,9 @@ function renderFindings() {
     el("div", {class: "t"}, el("span", {class: `chip ${w.severity === "critical" || w.severity === "high" ? "fail" : w.severity === "medium" ? "tripped" : "none"}`, text: w.severity}),
       el("span", {text: w.title})),
     el("div", {class: "f"}, el("span", {class: "mono", text: w.service}), ` · ${plural(w.runs.length, "run")} · worst risk ${w.risk}/10`),
-    w.fixes.length ? el("div", {class: "f"}, el("b", {text: "Fix: "}), w.fixes[0].title) : null))
+    w.fixes.length ? el("div", {class: "f"}, el("b", {text: "Fix: "}), w.fixes[0].title) : null,
+    w.verification ? el("div", {class: "f verified"}, el("span", {class: `chip ${w.verification.verified ? "pass" : "tripped"}`,
+      text: w.verification.verified ? "fix verified" : "fix not verified"}), " ", w.verification.summary) : null))
     : [el("li", {}, el("span", {class: "n", text: "–"}), el("span", {class: "f", text: "No weaknesses found yet."}))]));
   $("#gradeList").replaceChildren(...r.scorecard.services.map(row => el("div", {class: "grade-row"},
     el("span", {class: "mono", text: row.service}),
@@ -1639,7 +1655,7 @@ function renderRunList() {
     items.push(el("button", {type: "button", class: "run", "aria-current": String(run.id === S.selected), onclick: () => selectRun(run.id)},
       el("span", {class: "glyph"}, glyph(run.fault.kind, 15)),
       el("span", {}, el("div", {class: "t1", text: `${NAMES[run.fault.kind] || run.fault.kind} · ${run.fault.target}`}),
-        el("div", {class: "t2", text: `${clock(run.id)} · ${run.recovery_s != null ? `recovered ${secs(run.recovery_s)}` : run.outcome}`})),
+        el("div", {class: "t2", text: `${clock(run.id)} · ${run.recovery_s != null ? `recovered ${secs(run.recovery_s)}` : run.outcome}${run.fix ? ` · with fix` : ""}`})),
       el("span", {class: `chip ${v.key}`, text: v.label})));
   }
   box.replaceChildren(...(items.length ? items : [el("p", {class: "empty-note", text: "No experiments yet. Arm one on the bench."})]));
@@ -1661,7 +1677,8 @@ function renderDetail() {
   const head = el("div", {class: "detail-head"},
     el("span", {class: "glyph big"}, glyph(fault.kind, 22)),
     el("div", {class: "ttl"}, el("h3", {text: `${NAMES[fault.kind] || fault.kind} on ${fault.target}`}),
-      el("p", {class: "why", text: d.live ? `Recording now · ${d.id}` : `${clock(d.id)} · ${d.outcome}${d.abort_reason ? ` · ${d.abort_reason}` : ""}`})),
+      el("p", {class: "why", text: d.live ? `Recording now · ${d.id}` : `${clock(d.id)} · ${d.outcome}${d.abort_reason ? ` · ${d.abort_reason}` : ""}`}),
+      d.plan && d.plan.fix ? el("span", {class: "tagline ai", text: `ran with fix ${d.plan.fix} applied`}) : null),
     d.live ? el("span", {class: "tag"}, el("i"), "live") : el("span", {class: `chip ${v.key}`, text: v.label}),
     d.live ? null : el("button", {type: "button", class: "btn", onclick: () => playChart(), text: "▶ Play"}),
     d.live || !(d.timeline || []).length ? null : el("button", {type: "button", class: "btn primary", onclick: () => startReplay(d), text: "Replay on the bench"}));
@@ -1974,7 +1991,7 @@ $("#estop").addEventListener("click", async () => {
 document.addEventListener("keydown", e => {
   if (e.target.closest("input, textarea, select") || e.metaKey || e.ctrlKey || e.altKey) return;
   const kinds = Object.keys(NAMES);
-  if (/^[1-6]$/.test(e.key)) { setMode(kinds[Number(e.key) - 1]); }
+  if (/^[1-8]$/.test(e.key)) { setMode(kinds[Number(e.key) - 1]); }
   else if (e.key === "Escape" && S.replay) stopReplay();
 });
 let detailWidth = 0;

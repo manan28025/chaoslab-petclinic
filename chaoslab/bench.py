@@ -117,6 +117,7 @@ def _summary(run: Path) -> dict:
     observations = r.get("semantic_observations") or []
     return {
         "id": run.name, "fault": r.get("fault", {}), "outcome": r.get("outcome"),
+        "fix": (r.get("plan") or {}).get("fix"), "planned_by": (r.get("plan") or {}).get("planned_by"),
         "abort_reason": r.get("abort_reason"), "fault_active_s": r.get("fault_active_s"),
         "time_to_first_breach_s": r.get("time_to_first_breach_s"),
         "recovered": r.get("recovered"), "recovery_s": r.get("recovery_s"),
@@ -209,7 +210,8 @@ def report() -> dict:
         raise FileNotFoundError("no dependency map")
     analyses = analyst.load_all(snapshot=snapshot)
     services = [n["id"] for n in snapshot["nodes"] if n.get("kind") == "container" and n.get("active") is not False]
-    return analyst.report(analyses, services, list(FAULTS), snapshot["entry_point"])
+    from . import fixes
+    return analyst.report(analyses, services, list(FAULTS), snapshot["entry_point"], fixes.load_verifications())
 
 
 def make_plan(request: dict) -> dict:

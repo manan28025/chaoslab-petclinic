@@ -45,11 +45,13 @@ PARAMS = {
     "spike": {"multiplier": (5, 1.5, 6)},
 }
 # How much a first run of each fault type usually teaches; breaks near-ties.
-INFORMATIVENESS = {"kill": 0.4, "pause": 0.35, "delay": 0.3, "loss": 0.3, "cpu": 0.15, "spike": 0.2}
+INFORMATIVENESS = {"kill": 0.4, "pause": 0.35, "delay": 0.3, "loss": 0.3, "cpu": 0.15, "spike": 0.2,
+                   "stop": 0.3, "partition": 0.35}
 OUTCOME_WEIGHT = {"unavailable": 1.0, "degraded": 0.7, "uncertain": 0.5, "preserved": 0.0}
 LABELS = {"kill": "Crash", "pause": "Freeze", "delay": "Slow network", "loss": "Lossy network",
-          "cpu": "CPU starvation", "spike": "Traffic spike"}
-TYPICAL_RECOVERY_S = {"kill": 30, "pause": 20, "delay": 10, "loss": 10, "cpu": 10, "spike": 10}
+          "cpu": "CPU starvation", "spike": "Traffic spike", "stop": "Graceful stop", "partition": "Partition"}
+TYPICAL_RECOVERY_S = {"kill": 30, "pause": 20, "delay": 10, "loss": 10, "cpu": 10, "spike": 10,
+                      "stop": 30, "partition": 20}
 
 SYSTEM = """You are the planning agent of ChaosLab, a chaos-engineering tool for a local Spring PetClinic
 microservices sandbox (users -> api-gateway -> customers/visits/vets services, each with an in-memory
@@ -154,9 +156,9 @@ def candidates(snapshot: dict, history: list[dict], allowed: set[str]) -> list[d
             if target == last_target:
                 reasons.append("same target as the last run")
             approval = []
-            if kind == "kill" and restart.get(target, {}).get("data"):
+            if kind in ("kill", "stop") and restart.get(target, {}).get("data"):
                 approval.append(f"a crash loses data: {restart[target]['data']}")
-            if node.get("role") == "platform" and kind in ("kill", "pause"):
+            if node.get("role") == "platform" and kind in ("kill", "pause", "stop", "partition"):
                 dependents = len(node.get("needed_at_startup_by") or [])
                 approval.append(f"start-up dependency of {dependents} services")
             if len(hit["unavailable"]) >= 3:

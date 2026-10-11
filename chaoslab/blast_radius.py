@@ -10,6 +10,8 @@ FAILURE_MODES = {
     "loss": "intermittent",
     "cpu": "slow",
     "spike": "slow",
+    "stop": "unavailable",
+    "partition": "unavailable",
 }
 
 
@@ -92,7 +94,7 @@ def analyze(snapshot: dict, target: str, failure: str, phase: str | None = None,
                     queue.append((consumer, impact_path, evidence, uncertainty))
         # A crash is undone by restarting the target, which loses what it kept in memory.
         restart = snapshot.get("restart_effects", {}).get(target)
-        if result_key == "startup_restart" and failure == "kill" and restart:
+        if result_key == "startup_restart" and failure in ("kill", "stop") and restart:   # both restart it
             for name in restart["features"]:
                 if feature is None or name == feature:
                     impact = {"component": name, "service": target, "feature": name,

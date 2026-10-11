@@ -59,7 +59,7 @@ class BenchTest(unittest.TestCase):
 
     def test_attack_menu_explains_every_fault(self):
         attacks = bench.attacks()
-        self.assertEqual({a["kind"] for a in attacks}, {"kill", "pause", "delay", "loss", "cpu", "spike"})
+        self.assertEqual({a["kind"] for a in attacks}, {"kill", "pause", "delay", "loss", "cpu", "spike", "stop", "partition"})
         self.assertTrue(all(a["mechanism"] and a["undo"] for a in attacks))
 
     def test_kill_switch_needs_its_header_and_server_stays_local(self):

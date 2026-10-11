@@ -75,6 +75,12 @@ class AnalystTest(unittest.TestCase):
         self.assertIsNone(refused["risk"])
         self.assertEqual(refused["verdict"], "refused")
 
+    def test_a_relapse_after_looking_recovered_is_a_finding_with_a_fix(self):
+        a = analyst.analyze(result(relapses=[41.0, 55.5]), SNAPSHOT)
+        relapse = next(f for f in a["findings"] if f["code"] == "relapse")
+        self.assertIn("2 times", relapse["title"])
+        self.assertIn("faster-recovery", [f["id"] for f in a["fixes"]])
+
     def test_hypothesis_is_checked_against_what_users_saw(self):
         plan = {"planned_by": "ai", "hypothesis": {"expected": {"owner details": "preserved", "add visit": "unavailable"},
                                                     "expected_max_error_rate": 0.5, "expected_recovery_s": 30}}
@@ -113,9 +119,11 @@ class AnalystTest(unittest.TestCase):
         self.assertEqual(weak[0]["code"], "data_loss")
         self.assertEqual([f["id"] for f in weak[0]["fixes"]], ["persistent-database"])
         self.assertNotIn("watchdog_stop", [w["code"] for w in weak], "a safety stop is not an app weakness")
-        r = analyst.report([crash, calm], ["visits-service", "vets-service", "config-server"],
+        fixed = analyst.analyze(result(id="c", data_loss=None, plan={"fix": "persistent-database"}), SNAPSHOT)
+        r = analyst.report([crash, calm, fixed], ["visits-service", "vets-service", "config-server"],
                            ["kill", "pause", "delay", "loss", "cpu", "spike"], "api-gateway")
         self.assertEqual(r["coverage"], {"tested_pairs": 2, "possible_pairs": 16})
+        self.assertEqual(r["experiments"], 2, "a run made with a fix applied does not describe the system as it is")
         self.assertIn("Overall resilience", analyst.report_markdown(r))
 
 

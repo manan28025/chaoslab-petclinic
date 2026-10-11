@@ -6,17 +6,25 @@ ChaosLab is a local chaos engineering prototype for the [Spring PetClinic micros
 
 **Key finding:** In a recorded Visits-service crash, `GET /api/gateway/owners/6` returned HTTP `200` while all six baseline visits were missing from one correctness probe. The watchdog reverted the fault after **9.3 seconds**. The last recovery probe still lacked **two** baseline visits, so the run did **not** claim full recovery. [Open the dashboard](reports/dashboard.html).
 
+**Verified fix:** moving customers and visits from in-memory HSQLDB to PetClinic's MySQL profile, then rerunning the same crash, removed the data loss: the run's canary visit survived and the analyst's risk fell from **8.5/10 critical** to **5.2/10 medium**. The fix was reverted afterwards (`chaoslab verify persistent-database`).
+
 ## What this project demonstrates
 
 | Capability | Implemented behavior |
 | --- | --- |
 | Dependency analysis | Combines source-backed PetClinic semantics with Docker Compose, Eureka, Prometheus, Zipkin, and Locust observations; labels uncertain and stale evidence. |
 | Qualitative prediction | Explains which user actions become unavailable or degraded for a selected service failure, including Gateway fallbacks. |
-| Controlled injection | Supports crash, freeze, network delay, packet loss, CPU starvation, and traffic spike against allowlisted local services. |
+| AI experiment planner | Code ranks every allowed service and fault by users exposed, predicted impact and unverified predictions; an optional language model (DeepSeek by default) investigates with read-only tools, picks from the top five and writes a falsifiable hypothesis; code validates it, and risky plans need approval. |
+| Controlled injection | Supports crash, graceful stop, freeze, network partition, network delay, packet loss, CPU starvation, and traffic spike against allowlisted local services. |
 | Safety and recovery | Requires a healthy baseline; watches errors, p95 latency, throughput, and owner-data correctness; reverts on thresholds or time limits, with a kill switch and dead-man's switch. |
 | Measured outcomes | Saves per-run timelines and audit events, compares predictions with observed responses, and distinguishes HTTP success from complete data. |
+| Analysis and scoring | Turns every run into findings, a deterministic 0-10 risk score and PetClinic-specific fixes with verification commands; ranks weaknesses and grades each service A to F. |
+| Fix and verify | Applies a recommended fix as a Compose override, reruns the experiment that exposed the weakness, compares before and after, and restores the sandbox. |
+| Live operator console | `chaoslab bench`: live traffic on the dependency map, the AI planner, hold-to-launch, a second-by-second recorder and an emergency stop, on this machine only. |
 
-**Stack:** Python 3.11, Spring Boot microservices, Docker Compose, Locust, Prometheus, Grafana, Zipkin, and a dependency-free static HTML dashboard.
+**Stack:** Python 3.11 (standard library only), Spring Boot microservices, Docker Compose, Locust, Prometheus, Grafana, Zipkin, an optional OpenAI-compatible language model, and dependency-free HTML pages.
+
+**Quick check and demo:** `make doctor` says whether the machine is ready and how to fix what is not; `make demo` runs an AI-planned campaign of three experiments and writes `reports/resilience-report.md`.
 
 ## Architecture at a glance
 
@@ -24,7 +32,7 @@ ChaosLab is a local chaos engineering prototype for the [Spring PetClinic micros
 
 [Open the full-size architecture diagram](docs/images/architecture.svg).
 
-The operator selects a fault today. The controller uses the saved map to predict impact, checks a healthy baseline, and injects one bounded fault into an allowlisted service. Locust signals and an owner-data probe feed the watchdog; the resulting run record and dependency snapshot feed read-only reports. The [architecture guide](docs/architecture.md) details the safety and data contracts. AI planner and analysis agents are planned work.
+The AI planner or the operator selects a fault. The controller uses the saved map to predict impact, checks a healthy baseline, and injects one bounded fault into an allowlisted service. Locust signals and an owner-data probe feed the watchdog; the resulting run record and dependency snapshot feed read-only reports. The analyst scores each run and recommends fixes, which `chaoslab verify` can apply and test. The [architecture guide](docs/architecture.md) details the safety and data contracts.
 
 ## Explore the dependency map
 
