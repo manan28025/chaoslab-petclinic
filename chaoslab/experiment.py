@@ -68,7 +68,7 @@ def _action_observations(before, after) -> dict:
 
 
 def run(fault: Fault, guard: Guardrails, duration_s: int,
-        baseline_s: int = 20, recovery_timeout_s: int = 240) -> dict:
+        baseline_s: int = 20, recovery_timeout_s: int = 240, plan: dict | None = None) -> dict:
     preflight(fault)
     signal.signal(signal.SIGTERM, _raise_interrupt)
 
@@ -125,6 +125,9 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
     def save(result: dict) -> dict:
         result["timeline"] = [asdict(s) for s in timeline]
         result["prediction"] = prediction
+        if plan is not None:   # the planner's choice, rationale and hypothesis, for the analyst
+            result["plan"] = {k: plan.get(k) for k in ("id", "planned_by", "model", "rationale", "hypothesis",
+                                                       "requires_approval", "approval_reason", "approved")}
         result["semantic_observations"] = semantic_observations
         result["prediction_comparison"] = semantic_probe.compare(
             prediction, semantic_observations,
@@ -143,6 +146,9 @@ def run(fault: Fault, guard: Guardrails, duration_s: int,
 
     log("start", f"{fault.describe()} for up to {duration_s}s",
         fault=fault.to_dict(), guardrails=asdict(guard))
+    if plan is not None:
+        log("plan", f"chosen by {plan.get('planned_by')}: {plan.get('rationale')}",
+            hypothesis=plan.get("hypothesis"), plan_id=plan.get("id"))
 
     # 1. Steady state: only break a system that is healthy to begin with.
     log("baseline", f"measuring steady state for {baseline_s}s")

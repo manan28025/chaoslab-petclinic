@@ -162,3 +162,31 @@ Any one of these stops a fault:
 3. **Time limit**: every fault is reverted at its planned end (at most 300 s).
 4. **Kill switch**: `python3.11 -m chaoslab stop` from any terminal reverts everything and restores the sandbox.
 5. **Dead-man's switch**: a detached process reverts the fault 30 s after its planned end, even if the controller crashed.
+
+## AI planner, analyst and campaigns
+
+```bash
+python3.11 -m chaoslab plan                          # rank every allowed fault, pick one, write a hypothesis
+python3.11 -m chaoslab plan --run                    # ... and run it (asks before a risky plan)
+python3.11 -m chaoslab auto --budget 3               # campaign: plan, approve, run, analyse, repeat
+python3.11 -m chaoslab analyze                       # findings, risk 0-10 and fixes for every saved run
+python3.11 -m chaoslab report                        # ranked weaknesses, fixes and the A-F scorecard
+```
+
+**The model proposes, the code decides.** The planner ranks every allowed (service, fault) pair in code: users exposed, what the impact prediction says breaks, how much of that prediction is still unverified, and what history already answered. A language model, when configured, investigates through read-only tools (service details, the prediction for a candidate, history, fault details), picks one of the top five, tunes its strength inside planner bounds that are tighter than the fault limits, and writes a falsifiable hypothesis per user action. It submits through one tool; code validates the plan, clamps the settings and returns the reason when it rejects one, so the model can correct itself (at most three submissions and six turns). Without a model, or when it fails, the top-ranked candidate runs with the code prediction as its hypothesis, and the plan records `planned_by: rules`.
+
+Plans that could do lasting harm need a person's approval: a crash that loses data from an in-memory database, an outage of a start-up dependency such as `config-server`, a prediction that takes down three or more user actions, or heavy settings. `--approve-risky` approves them in advance; otherwise the CLI asks, and a campaign skips a declined plan and plans the next one.
+
+After every run, the analyst computes findings (user errors, HTTP 200 with missing visits, data loss, hangs instead of fast failures, throughput collapse, no self-healing, collateral damage, slow or missing recovery, a wrong prediction), a deterministic risk score from 0 to 10 (data loss or no recovery is always critical), the planner's hypothesis against what users saw, and PetClinic-specific fixes with the command that verifies each one. A model only writes the summary, likely cause and production impact, and may add at most two fixes labelled unverified. The result is `runs/<run>/analysis.json` and `analysis.md`. The report merges every run into ranked weaknesses, fixes and a per-service score from 0 to 100 graded A to F, with untested services listed rather than given a flattering grade (`reports/resilience-report.md` and `.json`).
+
+The language model is optional and configured by environment variables; the key is never stored in the repository:
+
+```bash
+export DEEPSEEK_API_KEY=...                        # or CHAOSLAB_LLM_API_KEY
+export CHAOSLAB_LLM_MODEL=deepseek-flash           # default
+export CHAOSLAB_LLM_BASE_URL=https://api.deepseek.com
+export CHAOSLAB_LLM=off                            # rules only, same as --no-ai
+```
+
+Any OpenAI-compatible endpoint works, including a local model such as `http://localhost:11434/v1` (Ollama), which needs no key.
+

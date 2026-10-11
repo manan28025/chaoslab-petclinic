@@ -1,10 +1,11 @@
 # Architecture and evidence flow
 
-ChaosLab is a Python controller around a **local Docker Compose sandbox**. The dashboard reads saved JSON and cannot call the fault injector. The AI planner and analysis agent in the project brief are planned interfaces; the current CLI operator selects a fault.
+ChaosLab is a Python controller around a **local Docker Compose sandbox**. The dashboard reads saved JSON and cannot call the fault injector. An AI planner chooses the next experiment from a code-ranked shortlist and an analyst scores every run; code makes every decision that runs, scores or stops a test, and the optional language model only picks among validated options and writes explanations.
 
 ```mermaid
 flowchart LR
-  Operator[Operator / CLI] --> Controller[ChaosLab controller]
+  Operator[Operator / CLI / bench] --> Planner[AI planner: code ranks, model picks, code validates]
+  Planner --> Controller[ChaosLab controller]
   Controller --> Safety[Preflight + watchdog + time limit]
   Safety --> Injector[Allowlisted fault injector]
   Injector --> Compose[PetClinic Docker Compose]
@@ -17,6 +18,8 @@ flowchart LR
   Locust[Locust metrics] --> Controller
   Probe[Owner-details correctness probe] --> Controller
   Controller --> Runs[Run JSON + audit events]
+  Runs --> Analyst[Analyst: findings, risk, fixes, scorecard]
+  Analyst --> Report[Resilience report]
   Discovery[Compose + Docker + Eureka + Prometheus + Zipkin + source rules] --> Map[Dependency snapshot]
   Map --> Prediction[Qualitative impact prediction]
   Prediction --> Controller
